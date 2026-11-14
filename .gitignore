@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Packaging output
+build/
+dist/
+*.spec
+
+# Google Platform-Tools are NOT bundled (see README). Keep any local copy out of the repo.
+platform-tools/
+platform-tools-latest-*.zip
+
+# Logs and local settings (logs can contain device serial numbers)
+logs/
+*.log
+settings.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Private working files
+*.img
+*.zip
