@@ -1,4 +1,4 @@
-# ADB Flash Next
+﻿# ADB Flash Next
 
 A Windows desktop application (Python + PySide6) that guides the installation of Android custom ROMs using **Fastboot** and **ADB sideload**.
 
