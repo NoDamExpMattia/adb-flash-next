@@ -9,7 +9,7 @@ class PlaceholderPage(QWidget):
     def __init__(self, title: str, description: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setContentsMargins(28, 24, 28, 24)
 
         title_label = QLabel(title)
         title_label.setObjectName("PageTitle")

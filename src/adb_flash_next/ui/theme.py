@@ -1,132 +1,148 @@
-"""Dark theme with a saturated red accent (palette + Qt style sheet)."""
+"""Material 3 Expressive theme: application palette, font and style sheet.
+
+`Colors` keeps the names older code uses and maps them onto Material 3 roles, so
+every page follows the tokens in ui/m3/tokens.py.
+"""
 from __future__ import annotations
 
 from string import Template
 
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
+
+from adb_flash_next.ui.m3.tokens import FONT_FAMILIES, SCHEME
 
 
 class Colors:
-    """Central colour definitions. Change the accent here to re-theme the app."""
+    """Compatibility names mapped onto Material 3 colour roles."""
 
-    BG = "#0b0b0c"
-    SIDEBAR = "#111113"
-    CARD = "#1a1a1e"
-    BORDER = "#2b2b31"
-    TEXT = "#ececee"
-    MUTED = "#8b8b94"
+    BG = SCHEME.surface
+    SIDEBAR = SCHEME.surface_container_low
+    CARD = SCHEME.surface_container
+    BORDER = SCHEME.outline_variant
+    TEXT = SCHEME.on_surface
+    MUTED = SCHEME.on_surface_variant
 
-    ACCENT = "#e5141e"
-    ACCENT_HOVER = "#ff2a35"
-    ACCENT_PRESSED = "#b30f17"
-    ACCENT_SOFT = "#1f1214"
+    ACCENT = SCHEME.primary
+    ACCENT_HOVER = "#FF2A35"
+    ACCENT_PRESSED = "#B30F17"
+    ACCENT_SOFT = SCHEME.secondary_container
 
-    RING_TRACK = "#26262b"
+    RING_TRACK = SCHEME.surface_container_highest
 
-    INFO = "#b8b8c0"
-    SUCCESS = "#3ddc84"
-    WARNING = "#f5a623"
-    ERROR = "#ff5252"
+    INFO = SCHEME.on_surface_variant
+    SUCCESS = SCHEME.success
+    WARNING = SCHEME.warning
+    ERROR = SCHEME.error
+
+
+def _style_values() -> dict[str, str]:
+    values = {name.upper(): value for name, value in vars(SCHEME).items() if not name.startswith("_")}
+    values.update({k: v for k, v in vars(Colors).items() if k.isupper()})
+    return values
 
 
 _STYLESHEET = Template(
     """
-QWidget {
-    background-color: $BG;
-    color: $TEXT;
-    font-family: "Segoe UI";
-    font-size: 10pt;
-}
-QLabel { background: transparent; }
-QLabel#PageTitle { font-size: 18pt; font-weight: 700; }
-QLabel#CardTitle { font-size: 11pt; font-weight: 700; }
-QLabel#BrandName { font-size: 11pt; font-weight: 800; }
-QLabel#Muted { color: $MUTED; }
-QLabel#StatusText { font-size: 12pt; font-weight: 700; }
+QMainWindow, QDialog { background-color: $SURFACE; }
 
-QFrame#Sidebar { background-color: $SIDEBAR; border-right: 1px solid $BORDER; }
+QLabel#PageTitle { font-size: 32px; font-weight: bold; }
+QLabel#CardTitle { font-size: 16px; font-weight: bold; }
+QLabel#BrandName { font-size: 15px; font-weight: bold; }
+QLabel#Muted { color: $ON_SURFACE_VARIANT; }
+QLabel#StatusText { font-size: 18px; font-weight: bold; }
+
+QFrame#Rail { background-color: $SURFACE_CONTAINER_LOW; border: none; }
 QFrame#Card {
-    background-color: $CARD;
-    border: 1px solid $BORDER;
-    border-radius: 10px;
-}
-QFrame#Card QLabel, QFrame#Card QWidget { background-color: transparent; }
-
-QPushButton#NavButton {
-    text-align: left;
-    padding: 11px 18px;
+    background-color: $SURFACE_CONTAINER;
     border: none;
-    border-left: 3px solid transparent;
-    border-radius: 0px;
-    background-color: transparent;
-    color: $MUTED;
-    font-weight: 600;
+    border-radius: 28px;
 }
-QPushButton#NavButton:hover { background-color: #18181c; color: $TEXT; }
-QPushButton#NavButton:checked {
-    color: $TEXT;
-    background-color: $ACCENT_SOFT;
-    border-left: 3px solid $ACCENT;
+
+QFrame#DropBox {
+    background-color: $SURFACE_CONTAINER_LOW;
+    border: 2px dashed $OUTLINE_VARIANT;
+    border-radius: 24px;
 }
 
 QPushButton {
-    background-color: $CARD;
-    border: 1px solid $BORDER;
-    border-radius: 6px;
-    padding: 6px 14px;
-}
-QPushButton:hover { border-color: $ACCENT; }
-QPushButton:pressed { background-color: $ACCENT_PRESSED; }
-QPushButton:disabled { color: $MUTED; border-color: $BORDER; }
-QPushButton#Primary {
-    background-color: $ACCENT;
+    background-color: $SURFACE_CONTAINER_HIGHEST;
     border: none;
-    color: white;
-    font-weight: 700;
+    border-radius: 14px;
+    padding: 9px 22px;
+    font-weight: bold;
+}
+QPushButton:hover { background-color: #443B3C; }
+QPushButton:pressed { background-color: #50464A; }
+QPushButton:disabled { color: #6f605f; background-color: $SURFACE_CONTAINER_HIGH; }
+
+QPushButton#Primary {
+    background-color: $PRIMARY;
+    color: $ON_PRIMARY;
+    border-radius: 16px;
+    padding: 10px 26px;
+    font-size: 15px;
 }
 QPushButton#Primary:hover { background-color: $ACCENT_HOVER; }
 QPushButton#Primary:pressed { background-color: $ACCENT_PRESSED; }
+QPushButton#Primary:disabled { background-color: #3a1417; color: #8b6b6e; }
 
 QComboBox {
-    background-color: $CARD;
-    border: 1px solid $BORDER;
-    border-radius: 6px;
-    padding: 5px 10px;
+    background-color: $SURFACE_CONTAINER_HIGHEST;
+    border: none;
+    border-radius: 14px;
+    padding: 8px 16px;
 }
-QComboBox:hover { border-color: $ACCENT; }
+QComboBox:hover { background-color: #443B3C; }
+QComboBox:disabled { color: #6f605f; background-color: $SURFACE_CONTAINER_HIGH; }
 QComboBox QAbstractItemView {
-    background-color: $CARD;
-    border: 1px solid $BORDER;
-    selection-background-color: $ACCENT;
+    background-color: $SURFACE_CONTAINER_HIGH;
+    border: 1px solid $OUTLINE_VARIANT;
+    border-radius: 14px;
+    padding: 6px;
+    selection-background-color: $PRIMARY;
     outline: 0;
 }
+QComboBox QAbstractItemView::item { border-radius: 10px; padding: 8px 12px; min-height: 22px; }
+
+QLineEdit {
+    background-color: $SURFACE_CONTAINER_HIGHEST;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 8px 14px;
+}
+QLineEdit:focus { border-color: $PRIMARY_BRIGHT; }
 
 QTextEdit#LogView {
-    background-color: #0f0f11;
-    border: 1px solid $BORDER;
-    border-radius: 8px;
+    background-color: $SURFACE_CONTAINER_LOWEST;
+    border: none;
+    border-radius: 20px;
     font-family: Consolas, "Cascadia Mono", monospace;
-    font-size: 9pt;
-    padding: 4px;
+    font-size: 12px;
+    padding: 8px;
 }
 
-QSlider::groove:horizontal { height: 4px; background: $RING_TRACK; border-radius: 2px; }
-QSlider::sub-page:horizontal { background: $ACCENT; border-radius: 2px; }
-QSlider::handle:horizontal {
-    background: $ACCENT; width: 14px; margin: -6px 0; border-radius: 7px;
-}
+QSlider::groove:horizontal { height: 6px; background: $SURFACE_CONTAINER_HIGHEST; border-radius: 3px; }
+QSlider::sub-page:horizontal { background: $PRIMARY; border-radius: 3px; }
+QSlider::handle:horizontal { background: $PRIMARY; width: 20px; margin: -8px 0; border-radius: 10px; }
 
-QScrollBar:vertical { background: transparent; width: 10px; margin: 0; }
-QScrollBar::handle:vertical { background: #33333a; border-radius: 5px; min-height: 24px; }
-QScrollBar::handle:vertical:hover { background: $ACCENT; }
+QScrollArea { border: none; background: transparent; }
+QScrollBar:vertical { background: transparent; width: 12px; margin: 2px; }
+QScrollBar::handle:vertical { background: $OUTLINE_VARIANT; border-radius: 4px; min-height: 28px; }
+QScrollBar::handle:vertical:hover { background: $OUTLINE; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
-QScrollBar:horizontal { background: transparent; height: 10px; margin: 0; }
-QScrollBar::handle:horizontal { background: #33333a; border-radius: 5px; min-width: 24px; }
-QScrollBar::handle:horizontal:hover { background: $ACCENT; }
+QScrollBar:horizontal { background: transparent; height: 12px; margin: 2px; }
+QScrollBar::handle:horizontal { background: $OUTLINE_VARIANT; border-radius: 4px; min-width: 28px; }
+QScrollBar::handle:horizontal:hover { background: $OUTLINE; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0px; }
 
-QToolTip { background-color: $CARD; color: $TEXT; border: 1px solid $ACCENT; }
+QToolTip {
+    background-color: $SURFACE_CONTAINER_HIGHEST;
+    color: $ON_SURFACE;
+    border: 1px solid $OUTLINE_VARIANT;
+    border-radius: 8px;
+    padding: 6px 10px;
+}
 """
 )
 
@@ -134,23 +150,31 @@ QToolTip { background-color: $CARD; color: $TEXT; border: 1px solid $ACCENT; }
 def _build_palette() -> QPalette:
     palette = QPalette()
     roles = QPalette.ColorRole
-    palette.setColor(roles.Window, QColor(Colors.BG))
-    palette.setColor(roles.WindowText, QColor(Colors.TEXT))
-    palette.setColor(roles.Base, QColor("#0f0f11"))
-    palette.setColor(roles.AlternateBase, QColor(Colors.CARD))
-    palette.setColor(roles.Text, QColor(Colors.TEXT))
-    palette.setColor(roles.Button, QColor(Colors.CARD))
-    palette.setColor(roles.ButtonText, QColor(Colors.TEXT))
-    palette.setColor(roles.Highlight, QColor(Colors.ACCENT))
-    palette.setColor(roles.HighlightedText, QColor("#ffffff"))
-    palette.setColor(roles.ToolTipBase, QColor(Colors.CARD))
-    palette.setColor(roles.ToolTipText, QColor(Colors.TEXT))
+    palette.setColor(roles.Window, QColor(SCHEME.surface))
+    palette.setColor(roles.WindowText, QColor(SCHEME.on_surface))
+    palette.setColor(roles.Base, QColor(SCHEME.surface_container_lowest))
+    palette.setColor(roles.AlternateBase, QColor(SCHEME.surface_container))
+    palette.setColor(roles.Text, QColor(SCHEME.on_surface))
+    palette.setColor(roles.Button, QColor(SCHEME.surface_container_highest))
+    palette.setColor(roles.ButtonText, QColor(SCHEME.on_surface))
+    palette.setColor(roles.Highlight, QColor(SCHEME.primary))
+    palette.setColor(roles.HighlightedText, QColor(SCHEME.on_primary))
+    palette.setColor(roles.ToolTipBase, QColor(SCHEME.surface_container_highest))
+    palette.setColor(roles.ToolTipText, QColor(SCHEME.on_surface))
+    palette.setColor(roles.PlaceholderText, QColor(SCHEME.outline))
     return palette
 
 
+def _build_font() -> QFont:
+    font = QFont()
+    font.setFamilies(list(FONT_FAMILIES))
+    font.setPixelSize(14)
+    return font
+
+
 def apply_theme(app: QApplication) -> None:
-    """Apply the Fusion style, the dark palette and the style sheet."""
+    """Apply the Fusion style, Material 3 palette, font and style sheet."""
     app.setStyle("Fusion")
     app.setPalette(_build_palette())
-    values = {k: v for k, v in vars(Colors).items() if k.isupper()}
-    app.setStyleSheet(_STYLESHEET.substitute(values))
+    app.setFont(_build_font())
+    app.setStyleSheet(_STYLESHEET.substitute(_style_values()))

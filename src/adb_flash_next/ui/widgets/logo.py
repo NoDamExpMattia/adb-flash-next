@@ -37,7 +37,7 @@ class LogoWidget(QWidget):
         else:
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(Colors.ACCENT))
-            painter.drawRoundedRect(QRectF(self.rect()), 9, 9)
+            painter.drawRoundedRect(QRectF(self.rect()), 14, 14)
             font = QFont(self.font())
             font.setBold(True)
             font.setPixelSize(int(self.height() * 0.42))

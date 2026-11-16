@@ -25,6 +25,7 @@ class LogPanel(QTextEdit):
         super().__init__(parent)
         self.setObjectName("LogView")
         self.setReadOnly(True)
+        self.viewport().setAutoFillBackground(False)
         self.document().setMaximumBlockCount(self.MAX_LINES)
 
     def append_entry(self, level: str, message: str) -> None:

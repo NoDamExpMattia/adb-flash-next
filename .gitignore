@@ -10,26 +10,27 @@ __pycache__/
 venv/
 env/
 
-# Packaging output
+# Packaging and generated screenshots
 build/
 dist/
 *.spec
+screenshots/
 
-# Google Platform-Tools are NOT bundled (see README). Keep any local copy out of the repo.
+# Platform-Tools are installed separately and must not be committed
 platform-tools/
 platform-tools-latest-*.zip
 
-# Logs and local settings (logs can contain device serial numbers)
+# Logs and local settings
 logs/
 *.log
 settings.json
 
-# Editors / OS
+# Editors and OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Private working files
+# Device images and local archives
 *.img
 *.zip

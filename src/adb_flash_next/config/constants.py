@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 APP_NAME = "ADB Flash Next"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.7.0"
 
 DEFAULT_WINDOW_SIZE = (900, 650)
 MIN_WINDOW_SIZE = (760, 560)
@@ -24,10 +24,11 @@ SUPPORTED_PARTITIONS = (
     "boot",
     "dtbo",
     "vendor_boot",
-    "init_boot",
     "recovery",
+    "init_boot",
     "vbmeta",
 )
+
 
 # Shown whenever a value cannot be determined. We never invent values.
 NOT_AVAILABLE = "Not available"
@@ -45,6 +46,8 @@ TIMEOUT_TOOL_VERSION = 8.0
 TIMEOUT_DEVICE_LIST = 12.0
 TIMEOUT_ADB_PROPS = 12.0
 TIMEOUT_FASTBOOT_GETVAR = 10.0
+TIMEOUT_REBOOT = 30.0
+TIMEOUT_FLASH_STEP = 1200.0  # one Fastboot flash/erase step, in seconds
 
 # Allowed shapes for values that end up inside a command line.
 # Serial: letters, digits, dot, underscore, dash, colon (e.g. "192.168.1.5:5555").

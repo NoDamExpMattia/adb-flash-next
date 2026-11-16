@@ -1,6 +1,8 @@
 """Settings page: choose and verify the Android Platform-Tools folder."""
 from __future__ import annotations
 
+import html
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -8,13 +10,13 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from adb_flash_next.config.constants import NOT_AVAILABLE
 from adb_flash_next.core.platform_tools import PlatformTools
+from adb_flash_next.ui.m3.button import M3Button
 from adb_flash_next.ui.theme import Colors
 
 
@@ -27,8 +29,8 @@ class SettingsPage(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         root = QVBoxLayout(self)
-        root.setContentsMargins(24, 20, 24, 20)
-        root.setSpacing(14)
+        root.setContentsMargins(28, 24, 28, 24)
+        root.setSpacing(16)
 
         title = QLabel("Settings")
         title.setObjectName("PageTitle")
@@ -37,8 +39,8 @@ class SettingsPage(QWidget):
         card = QFrame()
         card.setObjectName("Card")
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(10)
+        layout.setContentsMargins(24, 20, 24, 22)
+        layout.setSpacing(12)
 
         header = QLabel("Android Platform-Tools")
         header.setObjectName("CardTitle")
@@ -53,16 +55,16 @@ class SettingsPage(QWidget):
         grid.setHorizontalSpacing(16)
         grid.setVerticalSpacing(6)
         self._folder = self._add_row(grid, 0, "Folder")
+        self._folder.setTextFormat(Qt.TextFormat.RichText)  # long paths can wrap anywhere
         self._adb_version = self._add_row(grid, 1, "adb version")
         self._fastboot_version = self._add_row(grid, 2, "fastboot version")
         grid.setColumnStretch(1, 1)
         layout.addLayout(grid)
 
         buttons = QHBoxLayout()
-        self._browse_button = QPushButton("Browse...")
-        self._browse_button.setObjectName("Primary")
+        self._browse_button = M3Button("Browse...", "filled", height=44)
         self._browse_button.clicked.connect(self._on_browse)
-        self._auto_button = QPushButton("Auto-detect")
+        self._auto_button = M3Button("Auto-detect", "tonal", icon="refresh", height=44)
         self._auto_button.clicked.connect(self.autodetect_requested.emit)
         buttons.addWidget(self._browse_button)
         buttons.addWidget(self._auto_button)
@@ -110,7 +112,7 @@ class SettingsPage(QWidget):
 
     def show_tools(self, tools: PlatformTools) -> None:
         self._set_status("Platform-Tools ready", Colors.SUCCESS)
-        self._folder.setText(str(tools.directory))
+        self._folder.setText(html.escape(str(tools.directory)))
         self._adb_version.setText(tools.adb_version or NOT_AVAILABLE)
         self._fastboot_version.setText(tools.fastboot_version or NOT_AVAILABLE)
         self._browse_button.setEnabled(True)

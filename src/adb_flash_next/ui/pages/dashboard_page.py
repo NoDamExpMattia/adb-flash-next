@@ -8,15 +8,15 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QSlider,
     QVBoxLayout,
     QWidget,
 )
 
 from adb_flash_next.config.constants import NOT_AVAILABLE
 from adb_flash_next.core.models import INFO_FIELDS, ConnectionMode, DeviceInfo, PollResult
+from adb_flash_next.ui.m3.button import M3Button
 from adb_flash_next.ui.theme import Colors
+from adb_flash_next.ui.widgets.chip import StatusChip
 from adb_flash_next.ui.widgets.log_panel import LogPanel
 from adb_flash_next.ui.widgets.progress_ring import ProgressRing
 
@@ -42,40 +42,39 @@ class DashboardPage(QWidget):
         self._tools_missing = False
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(24, 20, 24, 20)
-        root.setSpacing(14)
+        root.setContentsMargins(28, 24, 28, 24)
+        root.setSpacing(16)
 
+        header = QHBoxLayout()
         title = QLabel("Dashboard")
         title.setObjectName("PageTitle")
-        root.addWidget(title)
+        header.addWidget(title)
+        header.addStretch()
+        self._refresh_button = M3Button("Refresh", "tonal", icon="refresh", height=44)
+        self._refresh_button.clicked.connect(self.refresh_requested.emit)
+        header.addWidget(self._refresh_button)
+        root.addLayout(header)
 
         top_row = QHBoxLayout()
-        top_row.setSpacing(14)
+        top_row.setSpacing(16)
         top_row.addWidget(self._build_device_card(), 3)
         top_row.addWidget(self._build_progress_card(), 2)
         root.addLayout(top_row)
 
         root.addWidget(self._build_log_card(), 1)
-
         self._render()
 
     # ------------------------------------------------------------------ build
     def _build_device_card(self) -> QFrame:
         card = _make_card()
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(8)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(10)
 
         status_row = QHBoxLayout()
-        status_row.setSpacing(8)
-        self._status_dot = QLabel("●")
-        self._status_text = QLabel()
-        self._status_text.setObjectName("StatusText")
-        self._refresh_button = QPushButton("Refresh")
-        self._refresh_button.clicked.connect(self.refresh_requested.emit)
-        status_row.addWidget(self._status_dot)
-        status_row.addWidget(self._status_text, 1)
-        status_row.addWidget(self._refresh_button)
+        self._status_text = StatusChip()
+        status_row.addWidget(self._status_text)
+        status_row.addStretch()
         layout.addLayout(status_row)
 
         self._hint = QLabel()
@@ -90,8 +89,8 @@ class DashboardPage(QWidget):
         layout.addWidget(self._combo)
 
         grid = QGridLayout()
-        grid.setHorizontalSpacing(16)
-        grid.setVerticalSpacing(6)
+        grid.setHorizontalSpacing(18)
+        grid.setVerticalSpacing(8)
         for row, field in enumerate(INFO_FIELDS):
             name = QLabel(field)
             name.setObjectName("Muted")
@@ -110,7 +109,7 @@ class DashboardPage(QWidget):
     def _build_progress_card(self) -> QFrame:
         card = _make_card()
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(8)
 
         self._ring = ProgressRing()
@@ -124,28 +123,16 @@ class DashboardPage(QWidget):
         self._operation_label.setWordWrap(True)
         layout.addWidget(caption)
         layout.addWidget(self._operation_label)
-
-        # TEMPORARY: lets you verify the ring. Removed once real progress exists.
-        test_label = QLabel("Ring test (temporary)")
-        test_label.setObjectName("Muted")
-        test_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._test_slider = QSlider(Qt.Orientation.Horizontal)
-        self._test_slider.setRange(0, 100)
-        self._test_slider.valueChanged.connect(self._ring.set_value)
-        layout.addWidget(test_label)
-        layout.addWidget(self._test_slider)
         return card
 
     def _build_log_card(self) -> QFrame:
         card = _make_card()
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 12, 16, 14)
-        layout.setSpacing(8)
-
+        layout.setContentsMargins(24, 18, 24, 20)
+        layout.setSpacing(10)
         header = QLabel("Log")
         header.setObjectName("CardTitle")
         layout.addWidget(header)
-
         self._log = LogPanel()
         layout.addWidget(self._log, 1)
         return card
@@ -191,6 +178,10 @@ class DashboardPage(QWidget):
     def set_progress(self, percent: float) -> None:
         self._ring.set_value(percent)
 
+    def set_progress_running(self, running: bool) -> None:
+        """Wavy ring while an operation is running, solid otherwise."""
+        self._ring.set_wavy(running)
+
     def set_operation(self, text: str) -> None:
         self._operation_label.setText(text)
 
@@ -233,8 +224,8 @@ class DashboardPage(QWidget):
         self.device_selected.emit(self.selected_device())
 
     def _set_status(self, text: str, color: str, hint: str = "") -> None:
-        self._status_text.setText(text)
-        self._status_dot.setStyleSheet(f"color: {color}; font-size: 14pt;")
+        """Status shown as a rounded chip tinted with the status colour."""
+        self._status_text.set_state(text, color, size=18)
         self._hint.setText(hint)
         self._hint.setVisible(bool(hint))
 

@@ -1,61 +1,67 @@
-﻿# ADB Flash Next
+# ADB Flash Next
 
-A Windows desktop application (Python + PySide6) that guides the installation of Android custom ROMs using **Fastboot** and **ADB sideload**.
+ADB Flash Next is an experimental Windows desktop app built with Python and PySide6. It provides a graphical workflow for Android device detection, manually mapped Fastboot image flashing, reboot commands, Fastboot utilities, and recovery ADB sideload.
 
-> \*\*Status: early development.\*\* Device detection works in early form; image mapping, flashing and sideload are still being built. Do not rely on it yet.
+## Project status
 
-## Goals
+The flashing and sideload workflows are implemented, but the app has not been validated across a broad range of phones, bootloaders, recoveries, ROMs, and USB drivers. Treat it as experimental software. A successful file check or command does not prove that an image is compatible with your device.
 
-* Detect connected devices through ADB and Fastboot and show only information the device actually reports ("Not available" otherwise).
-* Let you choose individual `.img` files and **manually confirm** which partition each one is flashed to.
-* Handle A/B and A-only devices without guessing partition names or slots.
-* Flash sequentially, stop on the first failure, and offer a dry-run preview.
-* Guide the manual recovery steps, then install a ROM ZIP with `adb sideload`.
-* Show 100% only after Android has actually booted.
+Supported image destinations are `boot`, `dtbo`, `vendor_boot`, `recovery`, `init_boot`, and `vbmeta`. The app does not currently provide a complete factory-image or dynamic-partition flashing workflow.
 
-## Safety and disclaimer
+## Safety
 
-Flashing images can make a device unbootable and can erase data. This software is provided **as is, without warranty**. You are responsible for following your ROM's official installation instructions and for backing up your data. A filename or basic header check can never prove that an image is compatible with your device.
-
-Samsung devices are outside the intended scope.
+- Flashing the wrong image can make a device fail to boot or require a full recovery.
+- The app checks basic image headers and, when Fastboot reports it, partition sizes. These checks cannot establish device or ROM compatibility.
+- Read the ROM maintainer's installation instructions and back up important data before using the app.
+- Erasing `userdata`, `metadata`, or `frp` is destructive. Use these actions only when the official instructions for your device require them.
+- The app does not unlock bootloaders or format data for you.
+- Samsung devices are outside the intended support scope.
 
 ## Requirements
 
-* Windows 10 or 11
-* Python 3.11 or newer (developed on 3.14)
-* [PySide6](https://pypi.org/project/PySide6/)
-* Google's official Android SDK Platform-Tools (**not bundled**): download them from
-[https://developer.android.com/tools/releases/platform-tools](https://developer.android.com/tools/releases/platform-tools) and select the folder in the app's Settings page.
-* A USB driver for your device if Windows does not detect it.
+- Windows 10 or 11
+- Python 3.11 or newer
+- Google Android SDK Platform-Tools (`adb` and `fastboot`), installed separately and selected in Settings
+- A suitable Windows USB driver for your device, if required
+
+Platform-Tools are not included in this repository. Download them from [Google's Platform-Tools page](https://developer.android.com/tools/releases/platform-tools).
 
 ## Run from source
 
+In PowerShell, from the project folder:
+
 ```powershell
-git clone https://github.com/NoDamExpMattia/adb-flash-next.git
-cd adb-flash-next
-py -3.14 -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python main.py
 ```
 
-## Run the tests
+On first launch, use **Settings → Auto-detect** or **Browse…** to select the extracted `platform-tools` folder.
+
+## Flashing workflow
+
+1. Connect the device and select it on the Dashboard. Use **Refresh** after changing its mode.
+2. Open **Images** and select an image for each partition you intend to flash.
+3. Every partition row starts included. Untick every unused row; a checked row without an image blocks the plan.
+4. On A/B devices, review the slot choice for each selected partition.
+5. Press **Flash partitions**, inspect the exact commands and device details, acknowledge the review, then start.
+
+The app performs preflight checks, executes one Fastboot command at a time, and stops after the first failed step. Do not disconnect the device during a flash.
+
+## Run the test suite
 
 ```powershell
 python -m unittest discover -s tests -t .
 ```
 
-## Roadmap
+The visual smoke test is separate and saves screenshots under `screenshots/`:
 
-* \[x] Project foundation and UI
-* \[x] Device detection (ADB / Fastboot, slot detection)
-* \[ ] Image selection, partition mapping, validation and flash-plan preview
-* \[ ] Fastboot flashing
-* \[ ] Recovery guidance and ADB sideload
-* \[ ] Boot completion verification
-* \[ ] Tests and Windows executable packaging
+```powershell
+python tools/smoke_test.py
+```
 
 ## License
 
-No license has been chosen yet.
-
+No license has been selected yet. Until a license is added, default copyright rules apply; a public GitHub repository is not automatically open-source software. See [GitHub's licensing guide](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository).
