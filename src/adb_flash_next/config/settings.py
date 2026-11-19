@@ -12,7 +12,10 @@ from pathlib import Path
 from typing import Any
 
 from adb_flash_next.config.constants import APP_DATA_DIRNAME
+<<<<<<< HEAD
 from adb_flash_next.ui.m3.tokens import normalize_hex
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 
 
 def app_data_dir() -> Path:
@@ -47,6 +50,7 @@ class Settings:
     def platform_tools_dir(self, value: str | None) -> None:
         self._data["platform_tools_dir"] = value
 
+<<<<<<< HEAD
     @property
     def theme_seed(self) -> str:
         """Accent colour as '#RRGGBB' (invalid or missing values fall back to the default red)."""
@@ -66,6 +70,8 @@ class Settings:
     def theme_mode(self, value: str) -> None:
         self._data["theme_mode"] = value if value in ("dark", "light") else "dark"
 
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     # -- persistence ---------------------------------------------------------
     def load(self) -> None:
         try:

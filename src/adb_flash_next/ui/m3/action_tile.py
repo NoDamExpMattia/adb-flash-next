@@ -80,16 +80,28 @@ class ActionTile(QAbstractButton):
 
         if enabled and (self.isDown() or self._hover or self.hasFocus()):
             layer = STATE["pressed"] if self.isDown() else (STATE["hover"] if self._hover else STATE["focus"])
+<<<<<<< HEAD
             painter.setBrush(qcolor(SCHEME.on_primary, layer))
             painter.drawRoundedRect(rect, radius, radius)
 
         title_color = qcolor(SCHEME.on_primary) if enabled else qcolor(SCHEME.on_surface, STATE["disabled_content"])
         sub_color = qcolor(SCHEME.on_primary, 0.85) if enabled else qcolor(SCHEME.on_surface, 0.30)
+=======
+            painter.setBrush(qcolor("#FFFFFF", layer))
+            painter.drawRoundedRect(rect, radius, radius)
+
+        title_color = qcolor("#FFFFFF") if enabled else qcolor(SCHEME.on_surface, STATE["disabled_content"])
+        sub_color = qcolor("#FFD9DB", 0.9) if enabled else qcolor(SCHEME.on_surface, 0.30)
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 
         # Icon in a soft circle on the left.
         circle = QRectF(rect.left() + 18, rect.center().y() - 22, 44, 44)
         painter.setPen(Qt.PenStyle.NoPen)
+<<<<<<< HEAD
         painter.setBrush(qcolor(SCHEME.on_primary, 0.18) if enabled else qcolor(SCHEME.on_surface, 0.08))
+=======
+        painter.setBrush(qcolor("#FFFFFF", 0.18) if enabled else qcolor(SCHEME.on_surface, 0.08))
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         painter.drawEllipse(circle)
         draw_icon(painter, self._icon, circle.adjusted(10, 10, -10, -10), title_color, stroke=2.2)
 

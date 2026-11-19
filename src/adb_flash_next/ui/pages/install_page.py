@@ -35,7 +35,10 @@ class InstallPage(QWidget):
         self._device: DeviceInfo | None = None
         self._check: ZipCheck | None = None
         self._busy = False
+<<<<<<< HEAD
         self._result_state = ("", "info")
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self._last_dir = str(Path.home())
 
         outer = QVBoxLayout(self)
@@ -165,6 +168,7 @@ class InstallPage(QWidget):
 
     def set_result(self, text: str, level: str) -> None:
         """Show the outcome under the progress ring. `level` is 'success', 'warning' or 'error'."""
+<<<<<<< HEAD
         self._result_state = (text, level)
         color = {"success": Colors.SUCCESS, "warning": Colors.WARNING, "error": Colors.ERROR}.get(level, Colors.MUTED)
         self._result.setText(f'<span style="color:{color}">{html.escape(text)}</span>' if text else "")
@@ -174,6 +178,11 @@ class InstallPage(QWidget):
         self._refresh()
         self.set_result(*self._result_state)
 
+=======
+        color = {"success": Colors.SUCCESS, "warning": Colors.WARNING, "error": Colors.ERROR}.get(level, Colors.MUTED)
+        self._result.setText(f'<span style="color:{color}">{html.escape(text)}</span>' if text else "")
+
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     def selected_zip(self) -> Path | None:
         return self._check.path if self._check else None
 

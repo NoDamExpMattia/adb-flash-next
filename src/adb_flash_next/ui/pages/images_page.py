@@ -170,7 +170,10 @@ class ImagesPage(QWidget):
         super().__init__(parent)
         self._last_dir = str(Path.home())
         self._device_signature: tuple | None = None
+<<<<<<< HEAD
         self._last_plan: FlashPlan | None = None
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self._rows: list[_PartitionRow] = []
 
         root = QVBoxLayout(self)
@@ -244,18 +247,24 @@ class ImagesPage(QWidget):
         self._write.setEnabled(not busy)
         self._stop.setVisible(busy and can_stop)
 
+<<<<<<< HEAD
     def apply_theme(self) -> None:
         """Re-render colours that were baked into labels after a theme change."""
         for row in self._rows:
             row.refresh()
         self.set_plan_status(self._last_plan)
 
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     def publish(self) -> None:
         """Send the current selections to listeners (used once after the window is wired up)."""
         self._emit()
 
     def set_plan_status(self, plan: FlashPlan | None) -> None:
+<<<<<<< HEAD
         self._last_plan = plan
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         if plan is None:
             self._status.setText("")
             return

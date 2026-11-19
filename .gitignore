@@ -1,2 +1,41 @@
+<<<<<<< HEAD
 
 screenshots/
+=======
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Packaging and generated screenshots
+build/
+dist/
+*.spec
+screenshots/
+
+# Platform-Tools are installed separately and must not be committed
+platform-tools/
+platform-tools-latest-*.zip
+
+# Logs and local settings
+logs/
+*.log
+settings.json
+
+# Editors and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Device images and local archives
+*.img
+*.zip
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b

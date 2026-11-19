@@ -33,7 +33,11 @@ class FastbootWorker(QThread):
         total = len(self._steps)
         try:
             self.log_message.emit("INFO", f"Checking device {self._serial} before starting...")
+<<<<<<< HEAD
             checks = preflight(self._tools, self._serial, self._steps)
+=======
+            checks = preflight(self._tools, self._serial, self._steps, cancel_event=self._stop)
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
             for warning in checks.warnings:
                 self.log_message.emit("WARNING", warning)
             if not checks.ok:
@@ -42,6 +46,10 @@ class FastbootWorker(QThread):
                 result = FlashRunResult(
                     False, 0, total, None,
                     "Not started: " + " ".join(checks.errors),
+<<<<<<< HEAD
+=======
+                    stopped=self._stop.is_set(),
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
                 )
             else:
                 result = run_steps(

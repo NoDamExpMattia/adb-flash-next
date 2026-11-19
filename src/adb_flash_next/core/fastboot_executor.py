@@ -65,7 +65,16 @@ def preflight(
     warnings: list[str] = []
     client = FastbootClient(tools.fastboot, runner)
 
+<<<<<<< HEAD
     serials, listing = client.list_devices(cancel_event)
+=======
+    if cancel_event is not None and cancel_event.is_set():
+        return Preflight(("Stopped before the Fastboot checks started. Nothing was run.",), ())
+
+    serials, listing = client.list_devices(cancel_event)
+    if listing.cancelled:
+        return Preflight(("Stopped during the Fastboot device check. Nothing was run.",), ())
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     if not listing.ok:
         return Preflight((f"Could not ask Fastboot for the device list: {listing.failure_reason()}",), ())
     if serial not in serials:
@@ -73,7 +82,13 @@ def preflight(
             f"Device {serial} is not connected in Fastboot mode any more. Nothing was run.",
         ), ())
 
+<<<<<<< HEAD
     unlocked, _ = client.getvar(serial, "unlocked", cancel_event)
+=======
+    unlocked, unlocked_result = client.getvar(serial, "unlocked", cancel_event)
+    if unlocked_result.cancelled:
+        return Preflight(("Stopped during the bootloader check. Nothing was run.",), ())
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     if unlocked is not None and unlocked.strip().lower() == "no":
         errors.append("The bootloader reports that it is LOCKED, so flashing and erasing would be refused.")
     elif unlocked is None:
@@ -86,6 +101,11 @@ def preflight(
             errors.append(f"The image file is missing: {step.image}")
             continue
         value, _ = client.getvar(serial, f"partition-size:{step.target_partition}", cancel_event)
+<<<<<<< HEAD
+=======
+        if cancel_event is not None and cancel_event.is_set():
+            return Preflight(("Stopped during the partition checks. Nothing was run.",), ())
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         partition_size = parse_size(value)
         image_size = step.image.stat().st_size
         if partition_size is None:

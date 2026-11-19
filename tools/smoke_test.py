@@ -72,7 +72,11 @@ def main() -> int:
     step("dashboard (waiting)", lambda: shot("1_dashboard_waiting"))
 
     device = DeviceInfo(
+<<<<<<< HEAD
         serial="320246836040",
+=======
+        serial="TESTSERIAL01",
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         transport=Transport.FASTBOOT,
         mode=ConnectionMode.FASTBOOT,
         product="sunfish",
@@ -131,13 +135,21 @@ def main() -> int:
         archive.writestr("META-INF/com/android/metadata", b"x")
     zip_check = validate_rom_zip(zip_path)
     sideload_device = DeviceInfo(
+<<<<<<< HEAD
         serial="320246836040",
+=======
+        serial="TESTSERIAL01",
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         transport=Transport.ADB,
         mode=ConnectionMode.SIDELOAD,
         adb_state="sideload",
     )
     recovery_device = DeviceInfo(
+<<<<<<< HEAD
         serial="320246836040",
+=======
+        serial="TESTSERIAL01",
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         transport=Transport.ADB,
         mode=ConnectionMode.RECOVERY,
         adb_state="recovery",
@@ -183,6 +195,7 @@ def main() -> int:
 
     step("sideload dialog", sideload_dialog)
 
+<<<<<<< HEAD
     def themes() -> None:
         from adb_flash_next.ui.theme import apply_theme
 
@@ -202,6 +215,8 @@ def main() -> int:
 
     step("themes", themes)
 
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     def collapsed() -> None:
         window.show_page(0)
         window._rail.set_expanded(False, animate=False)

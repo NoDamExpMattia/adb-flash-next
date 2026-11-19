@@ -188,11 +188,14 @@ class DashboardPage(QWidget):
     def log(self, level: str, message: str) -> None:
         self._log.append_entry(level, message)
 
+<<<<<<< HEAD
     def apply_theme(self) -> None:
         """Re-render status colours and the log after a theme change."""
         self._render()
         self._log.rebuild()
 
+=======
+>>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     # ---------------------------------------------------------------- internals
     def _log_transitions(self, devices: list[DeviceInfo]) -> None:
         new = {d.key: d for d in devices}
