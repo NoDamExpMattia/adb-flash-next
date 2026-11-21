@@ -136,6 +136,13 @@ def _shield(p: QPainter) -> None:
     p.drawPolyline(QPolygonF([QPointF(9, 12), QPointF(11.2, 14.2), QPointF(15, 9.8)]))
 
 
+
+def _open(p: QPainter) -> None:
+    p.drawPolyline(QPolygonF([QPointF(10, 5), QPointF(5, 5), QPointF(5, 19), QPointF(19, 19), QPointF(19, 14)]))
+    p.drawLine(QPointF(12.5, 11.5), QPointF(19.5, 4.5))
+    p.drawPolyline(QPolygonF([QPointF(14, 4.5), QPointF(19.5, 4.5), QPointF(19.5, 10)]))
+
+
 _ICONS = {
     "dashboard": _dashboard,
     "images": _images,
@@ -153,6 +160,7 @@ _ICONS = {
     "database": _database,
     "lock": _lock,
     "shield": _shield,
+    "open": _open,
 }
 
 

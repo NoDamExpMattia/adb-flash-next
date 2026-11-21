@@ -6,11 +6,7 @@ from typing import Any, Callable
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QCloseEvent
-<<<<<<< HEAD
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QMessageBox, QStackedWidget, QWidget
-=======
-from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QMessageBox, QStackedWidget, QWidget
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 
 from adb_flash_next.config.constants import (
     APP_NAME,
@@ -20,11 +16,7 @@ from adb_flash_next.config.constants import (
 )
 from adb_flash_next.config.settings import Settings
 from adb_flash_next.core.fastboot_executor import FlashRunResult
-<<<<<<< HEAD
 from adb_flash_next.core.flash_plan import FlashPlan, PartitionSelection, build_plan
-=======
-from adb_flash_next.core.flash_plan import FlashPlan, PartitionSelection, build_plan, device_identity
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 from adb_flash_next.core.models import DeviceInfo, Transport
 from adb_flash_next.core.platform_tools import PlatformTools, check_directory, locate
 from adb_flash_next.core.progress import Phase, overall_percent
@@ -46,10 +38,7 @@ from adb_flash_next.ui.pages.install_page import InstallPage
 from adb_flash_next.ui.pages.reboot_page import RebootPage
 from adb_flash_next.ui.pages.settings_page import SettingsPage
 from adb_flash_next.ui.pages.utilities_page import UtilitiesPage
-<<<<<<< HEAD
 from adb_flash_next.ui.theme import apply_theme, theme_manager
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 from adb_flash_next.workers.base_worker import FunctionWorker
 from adb_flash_next.workers.detection_worker import DetectionWorker
 from adb_flash_next.workers.fastboot_worker import FastbootWorker
@@ -115,11 +104,8 @@ class MainWindow(QMainWindow):
 
         self.settings_page.directory_chosen.connect(self._on_directory_chosen)
         self.settings_page.autodetect_requested.connect(self._on_autodetect)
-<<<<<<< HEAD
         self.settings_page.appearance_changed.connect(self._on_appearance_changed)
         theme_manager().changed.connect(self._on_theme_changed)
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self.dashboard.refresh_requested.connect(self._on_refresh)
         self.dashboard.device_selected.connect(self._on_device_selected)
         self.images_page.selections_changed.connect(self._on_selections_changed)
@@ -130,10 +116,7 @@ class MainWindow(QMainWindow):
         self.install_page.sideload_requested.connect(self._on_sideload_requested)
         self.install_page.cancel_requested.connect(self._on_sideload_cancel)
 
-<<<<<<< HEAD
         self.settings_page.set_appearance(self._settings.theme_seed, self._settings.theme_mode)
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self.show_page(0)
         self.dashboard.log("INFO", f"{APP_NAME} {APP_VERSION} started.")
         self.images_page.publish()
@@ -181,7 +164,6 @@ class MainWindow(QMainWindow):
         self.utilities_page.set_busy(False)
         self.reboot_page.set_busy(False)
 
-<<<<<<< HEAD
     # ------------------------------------------------------------------ appearance
     def _on_appearance_changed(self, seed: str, mode: str) -> None:
         """The user picked a colour or a mode in Settings: apply it live and remember it."""
@@ -201,8 +183,6 @@ class MainWindow(QMainWindow):
             page.apply_theme()
         self.update()
 
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     # ------------------------------------------------------------ background tasks
     def _run_task(
         self,
@@ -366,23 +346,6 @@ class MainWindow(QMainWindow):
                 "ERROR", "The selected device changed or left Fastboot mode. Nothing was run."
             )
             return
-<<<<<<< HEAD
-=======
-        current_identity = device_identity(device)
-        planned_identity = {
-            "device_serial": plan.device_serial,
-            "device_label": plan.device_label,
-            "mode_text": plan.mode_text,
-            "scheme_text": plan.scheme_text,
-            "slot_text": plan.slot_text,
-        }
-        if current_identity != planned_identity:
-            self.dashboard.log(
-                "WARNING",
-                "The device details changed while the review was open. Nothing was run; review the updated plan and try again.",
-            )
-            return
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self._start_fastboot_job(tools, plan, kind)
 
     def _start_fastboot_job(self, tools: PlatformTools, plan: FlashPlan, kind: str) -> None:
@@ -627,6 +590,7 @@ class MainWindow(QMainWindow):
                 return
             worker.cancel()
             worker.wait(10000)
+        self.images_page.shutdown()
         self._stop_detector()
         for task in list(self._tasks):
             task.wait(8000)

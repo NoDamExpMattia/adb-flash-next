@@ -162,12 +162,9 @@ class UtilitiesPage(QWidget):
         self._busy = busy
         self._refresh()
 
-<<<<<<< HEAD
     def apply_theme(self) -> None:
         self._refresh()
 
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     # ---------------------------------------------------------------- internals
     def _on_tile(self, action: UtilityAction) -> None:
         if self._busy:

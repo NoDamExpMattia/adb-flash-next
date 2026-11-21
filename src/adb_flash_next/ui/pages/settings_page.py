@@ -1,37 +1,25 @@
-<<<<<<< HEAD
 """Settings page: Platform-Tools location and appearance (accent colour, dark / light mode)."""
-=======
-"""Settings page: choose and verify the Android Platform-Tools folder."""
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 from __future__ import annotations
 
 import html
 
-from PySide6.QtCore import Qt, Signal
-<<<<<<< HEAD
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QUrl, Qt, Signal
+from PySide6.QtGui import QColor, QDesktopServices
 from PySide6.QtWidgets import (
     QColorDialog,
-=======
-from PySide6.QtWidgets import (
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     QFileDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
-<<<<<<< HEAD
     QScrollArea,
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     QVBoxLayout,
     QWidget,
 )
 
-from adb_flash_next.config.constants import NOT_AVAILABLE
+from adb_flash_next.config.constants import APP_NAME, APP_VERSION, AUTHOR_HANDLE, AUTHOR_URL, NOT_AVAILABLE
 from adb_flash_next.core.platform_tools import PlatformTools
 from adb_flash_next.ui.m3.button import M3Button
-<<<<<<< HEAD
 from adb_flash_next.ui.m3.segmented import M3Segmented
 from adb_flash_next.ui.m3.tokens import DEFAULT_SEED, PRESET_SEEDS, normalize_hex
 from adb_flash_next.ui.theme import Colors
@@ -48,9 +36,6 @@ def _card(title: str) -> tuple[QFrame, QVBoxLayout]:
     header.setObjectName("CardTitle")
     layout.addWidget(header)
     return card, layout
-=======
-from adb_flash_next.ui.theme import Colors
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 
 
 class SettingsPage(QWidget):
@@ -58,7 +43,6 @@ class SettingsPage(QWidget):
 
     directory_chosen = Signal(str)
     autodetect_requested = Signal()
-<<<<<<< HEAD
     appearance_changed = Signal(str, str)  # accent colour '#RRGGBB', mode 'dark' / 'light'
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -78,12 +62,6 @@ class SettingsPage(QWidget):
         content = QWidget()
         scroll.setWidget(content)
         root = QVBoxLayout(content)
-=======
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        root = QVBoxLayout(self)
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         root.setContentsMargins(28, 24, 28, 24)
         root.setSpacing(16)
 
@@ -91,21 +69,8 @@ class SettingsPage(QWidget):
         title.setObjectName("PageTitle")
         root.addWidget(title)
 
-<<<<<<< HEAD
         # ---------------------------------------------------------- Platform-Tools
         tools_card, layout = _card("Android Platform-Tools")
-=======
-        card = QFrame()
-        card.setObjectName("Card")
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(24, 20, 24, 22)
-        layout.setSpacing(12)
-
-        header = QLabel("Android Platform-Tools")
-        header.setObjectName("CardTitle")
-        layout.addWidget(header)
-
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self._status = QLabel("Checking...")
         self._status.setObjectName("StatusText")
         self._status.setWordWrap(True)
@@ -140,7 +105,6 @@ class SettingsPage(QWidget):
         note.setObjectName("Muted")
         note.setWordWrap(True)
         layout.addWidget(note)
-<<<<<<< HEAD
         root.addWidget(tools_card)
 
         # -------------------------------------------------------------- Appearance
@@ -186,17 +150,28 @@ class SettingsPage(QWidget):
         hint.setWordWrap(True)
         look.addWidget(hint)
         root.addWidget(look_card)
+
+        # ------------------------------------------------------------------- About
+        about_card, about = _card("About")
+        app_line = QLabel(f"{APP_NAME}  v{APP_VERSION}")
+        app_line.setStyleSheet("font-size: 16px; font-weight: bold;")
+        about.addWidget(app_line)
+        author_line = QLabel(f"Developer: @{AUTHOR_HANDLE}")
+        author_line.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        about.addWidget(author_line)
+        about_row = QHBoxLayout()
+        self._profile_button = M3Button("Open GitHub profile", "filled", icon="open", height=44)
+        self._profile_button.setToolTip(AUTHOR_URL)
+        self._profile_button.clicked.connect(self._open_profile)
+        about_row.addWidget(self._profile_button)
+        about_row.addStretch()
+        about.addLayout(about_row)
+        root.addWidget(about_card)
         root.addStretch()
 
         self._sync_appearance()
         self._render_status()
 
-=======
-
-        root.addWidget(card)
-        root.addStretch()
-
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     @staticmethod
     def _add_row(grid: QGridLayout, row: int, name: str) -> QLabel:
         label = QLabel(name)
@@ -208,16 +183,12 @@ class SettingsPage(QWidget):
         grid.addWidget(value, row, 1)
         return value
 
-<<<<<<< HEAD
     # ------------------------------------------------------------ Platform-Tools state
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     def _on_browse(self) -> None:
         directory = QFileDialog.getExistingDirectory(self, "Select the platform-tools folder")
         if directory:
             self.directory_chosen.emit(directory)
 
-<<<<<<< HEAD
     def _render_status(self) -> None:
         text, level = self._status_state
         color = {"ok": Colors.SUCCESS, "warn": Colors.WARNING, "error": Colors.ERROR}.get(level, Colors.MUTED)
@@ -227,25 +198,12 @@ class SettingsPage(QWidget):
     def show_checking(self) -> None:
         self._status_state = ("Checking Platform-Tools...", "warn")
         self._render_status()
-=======
-    def _set_status(self, text: str, color: str) -> None:
-        self._status.setText(text)
-        self._status.setStyleSheet(f"color: {color};")
-
-    # -- called by MainWindow --------------------------------------------------
-    def show_checking(self) -> None:
-        self._set_status("Checking Platform-Tools...", Colors.WARNING)
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self._browse_button.setEnabled(False)
         self._auto_button.setEnabled(False)
 
     def show_tools(self, tools: PlatformTools) -> None:
-<<<<<<< HEAD
         self._status_state = ("Platform-Tools ready", "ok")
         self._render_status()
-=======
-        self._set_status("Platform-Tools ready", Colors.SUCCESS)
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self._folder.setText(html.escape(str(tools.directory)))
         self._adb_version.setText(tools.adb_version or NOT_AVAILABLE)
         self._fastboot_version.setText(tools.fastboot_version or NOT_AVAILABLE)
@@ -253,7 +211,6 @@ class SettingsPage(QWidget):
         self._auto_button.setEnabled(True)
 
     def show_error(self, message: str) -> None:
-<<<<<<< HEAD
         self._status_state = (message, "error")
         self._render_status()
         self._browse_button.setEnabled(True)
@@ -294,11 +251,10 @@ class SettingsPage(QWidget):
         self._mode = "dark"
         self._emit_appearance()
 
+    def _open_profile(self) -> None:
+        """Open the developer's GitHub profile in the default browser (fixed address, no user input)."""
+        QDesktopServices.openUrl(QUrl(AUTHOR_URL))
+
     def apply_theme(self) -> None:
         """Re-render colours that were baked into labels."""
         self._render_status()
-=======
-        self._set_status(message, Colors.ERROR)
-        self._browse_button.setEnabled(True)
-        self._auto_button.setEnabled(True)
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b

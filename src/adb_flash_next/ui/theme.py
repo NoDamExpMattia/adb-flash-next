@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from string import Template
 
-<<<<<<< HEAD
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
@@ -79,40 +78,6 @@ def theme_manager() -> _ThemeManager:
 def _style_values() -> dict[str, str]:
     values = {k.upper(): v for k, v in SCHEME.as_dict().items() if isinstance(v, str)}
     values.update({k: v for k, v in vars(Colors).items() if k.isupper() and isinstance(v, str)})
-=======
-from PySide6.QtGui import QColor, QFont, QPalette
-from PySide6.QtWidgets import QApplication
-
-from adb_flash_next.ui.m3.tokens import FONT_FAMILIES, SCHEME
-
-
-class Colors:
-    """Compatibility names mapped onto Material 3 colour roles."""
-
-    BG = SCHEME.surface
-    SIDEBAR = SCHEME.surface_container_low
-    CARD = SCHEME.surface_container
-    BORDER = SCHEME.outline_variant
-    TEXT = SCHEME.on_surface
-    MUTED = SCHEME.on_surface_variant
-
-    ACCENT = SCHEME.primary
-    ACCENT_HOVER = "#FF2A35"
-    ACCENT_PRESSED = "#B30F17"
-    ACCENT_SOFT = SCHEME.secondary_container
-
-    RING_TRACK = SCHEME.surface_container_highest
-
-    INFO = SCHEME.on_surface_variant
-    SUCCESS = SCHEME.success
-    WARNING = SCHEME.warning
-    ERROR = SCHEME.error
-
-
-def _style_values() -> dict[str, str]:
-    values = {name.upper(): value for name, value in vars(SCHEME).items() if not name.startswith("_")}
-    values.update({k: v for k, v in vars(Colors).items() if k.isupper()})
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     return values
 
 
@@ -146,15 +111,9 @@ QPushButton {
     padding: 9px 22px;
     font-weight: bold;
 }
-<<<<<<< HEAD
 QPushButton:hover { background-color: $SURFACE_HOVER; }
 QPushButton:pressed { background-color: $SURFACE_PRESSED; }
 QPushButton:disabled { color: $DISABLED_TEXT; background-color: $SURFACE_CONTAINER_HIGH; }
-=======
-QPushButton:hover { background-color: #443B3C; }
-QPushButton:pressed { background-color: #50464A; }
-QPushButton:disabled { color: #6f605f; background-color: $SURFACE_CONTAINER_HIGH; }
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 
 QPushButton#Primary {
     background-color: $PRIMARY;
@@ -165,11 +124,7 @@ QPushButton#Primary {
 }
 QPushButton#Primary:hover { background-color: $ACCENT_HOVER; }
 QPushButton#Primary:pressed { background-color: $ACCENT_PRESSED; }
-<<<<<<< HEAD
 QPushButton#Primary:disabled { background-color: $PRIMARY_DISABLED_BG; color: $PRIMARY_DISABLED_TEXT; }
-=======
-QPushButton#Primary:disabled { background-color: #3a1417; color: #8b6b6e; }
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 
 QComboBox {
     background-color: $SURFACE_CONTAINER_HIGHEST;
@@ -177,13 +132,8 @@ QComboBox {
     border-radius: 14px;
     padding: 8px 16px;
 }
-<<<<<<< HEAD
 QComboBox:hover { background-color: $SURFACE_HOVER; }
 QComboBox:disabled { color: $DISABLED_TEXT; background-color: $SURFACE_CONTAINER_HIGH; }
-=======
-QComboBox:hover { background-color: #443B3C; }
-QComboBox:disabled { color: #6f605f; background-color: $SURFACE_CONTAINER_HIGH; }
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
 QComboBox QAbstractItemView {
     background-color: $SURFACE_CONTAINER_HIGH;
     border: 1px solid $OUTLINE_VARIANT;
@@ -261,22 +211,14 @@ def _build_font() -> QFont:
     return font
 
 
-<<<<<<< HEAD
 def apply_theme(app: QApplication, seed: str = DEFAULT_SEED, dark: bool = True) -> None:
     """Apply a theme built from `seed` (dark or light) to the whole application, live."""
     SCHEME.set(build_scheme(seed, dark))
     Colors.refresh()
-=======
-def apply_theme(app: QApplication) -> None:
-    """Apply the Fusion style, Material 3 palette, font and style sheet."""
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     app.setStyle("Fusion")
     app.setPalette(_build_palette())
     app.setFont(_build_font())
     app.setStyleSheet(_STYLESHEET.substitute(_style_values()))
-<<<<<<< HEAD
     for widget in app.allWidgets():
         widget.update()  # repaint custom-drawn widgets with the new colours
     theme_manager().changed.emit()
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b

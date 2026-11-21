@@ -42,10 +42,6 @@ class LogoWidget(QWidget):
             font.setBold(True)
             font.setPixelSize(int(self.height() * 0.42))
             painter.setFont(font)
-<<<<<<< HEAD
             painter.setPen(QColor(Colors.ON_PRIMARY))
-=======
-            painter.setPen(QColor("#ffffff"))
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "AF")
         painter.end()

@@ -4,11 +4,9 @@ from __future__ import annotations
 from pathlib import Path
 
 APP_NAME = "ADB Flash Next"
-<<<<<<< HEAD
-APP_VERSION = "0.8.0"
-=======
-APP_VERSION = "0.7.0"
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
+AUTHOR_HANDLE = "NoDamExpMattia"  # shown in Settings > About
+AUTHOR_URL = f"https://github.com/{AUTHOR_HANDLE}"
+APP_VERSION = "0.9.0"
 
 DEFAULT_WINDOW_SIZE = (900, 650)
 MIN_WINDOW_SIZE = (760, 560)

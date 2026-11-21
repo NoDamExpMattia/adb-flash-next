@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import dataclasses
 import html
+import threading
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFileDialog,
     QFrame,
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from adb_flash_next.config.constants import SUPPORTED_PARTITIONS
+from adb_flash_next.core.file_hash import sha256_of_file
 from adb_flash_next.core.flash_plan import FlashPlan, PartitionSelection
 from adb_flash_next.core.image_validator import LEVEL_ERROR, LEVEL_OK, format_size, validate_image
 from adb_flash_next.core.models import DeviceInfo, PartitionScheme
@@ -25,6 +28,7 @@ from adb_flash_next.core.slot_resolver import SlotChoice
 from adb_flash_next.ui.m3.button import M3Button
 from adb_flash_next.ui.theme import Colors
 from adb_flash_next.ui.widgets.toggle_button import ToggleButton
+from adb_flash_next.workers.base_worker import FunctionWorker
 
 
 class _PartitionRow(QFrame):
@@ -74,13 +78,36 @@ class _PartitionRow(QFrame):
         self._file.setWordWrap(True)
         self._choose = M3Button("Choose file...", "tonal", height=40)
         self._clear = M3Button("Clear", "text", height=40)
+        self._hash_button = M3Button("SHA-256", "text", height=40)
+        self._hash_button.setMinimumWidth(132)
+        self._hash_button.setToolTip("Show the SHA-256 checksum of this file")
+        self._hash_button.clicked.connect(self._on_hash_clicked)
         file_row.addWidget(self._file, 1)
         file_row.addWidget(self._choose)
+        file_row.addWidget(self._hash_button)
         file_row.addWidget(self._clear)
         body.addLayout(file_row)
         self._validation = QLabel()
         self._validation.setWordWrap(True)
         body.addWidget(self._validation)
+
+        # SHA-256 result (hidden until the button is used)
+        self._hash_value: str | None = None
+        self._hash_error: str | None = None
+        self._hash_busy = False
+        self._hash_job = 0
+        self._hash_cancel = threading.Event()
+        self._hash_workers: list[FunctionWorker] = []
+        hash_row = QHBoxLayout()
+        self._hash_label = QLabel()
+        self._hash_label.setTextFormat(Qt.TextFormat.RichText)  # rich text can wrap the long hash anywhere
+        self._hash_label.setWordWrap(True)
+        self._hash_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._hash_copy = M3Button("Copy", "text", height=36)
+        self._hash_copy.clicked.connect(self._copy_hash)
+        hash_row.addWidget(self._hash_label, 1)
+        hash_row.addWidget(self._hash_copy)
+        body.addLayout(hash_row)
         layout.addWidget(self._body)
 
         self.configure_slot(None)
@@ -104,9 +131,98 @@ class _PartitionRow(QFrame):
         self.changed.emit()
 
     def set_path(self, path: Path | None) -> None:
+        self._cancel_hash()  # a hash of the previous file must never be shown for the new one
         self.selection.path = path
         self.refresh()
         self.changed.emit()
+
+    # -- SHA-256 ---------------------------------------------------------------------
+    def _cancel_hash(self) -> None:
+        self._hash_cancel.set()
+        self._hash_job += 1
+        self._hash_busy = False
+        self._hash_value = None
+        self._hash_error = None
+
+    def _on_hash_clicked(self) -> None:
+        path = self.selection.path
+        if path is None or self._hash_busy:
+            return
+        self._hash_job += 1
+        job = self._hash_job
+        self._hash_busy = True
+        self._hash_value = None
+        self._hash_error = None
+        self._hash_cancel = threading.Event()
+        cancel = self._hash_cancel
+
+        def work():
+            try:
+                return (job, str(path), sha256_of_file(path, cancel), None)
+            except InterruptedError:
+                return (job, str(path), None, "Cancelled.")
+            except OSError as exc:
+                return (job, str(path), None, f"Could not read the file ({exc.strerror or exc}).")
+
+        worker = FunctionWorker(work)
+        worker.succeeded.connect(self._on_hash_result)
+        worker.failed.connect(self._on_hash_failed)
+        worker.finished.connect(self._prune_workers)
+        self._hash_workers.append(worker)
+        self._update_hash_view()
+        worker.start()
+
+    def _on_hash_result(self, result) -> None:
+        job, path, digest, error = result
+        if job != self._hash_job:
+            return  # an older request: ignore
+        self._hash_busy = False
+        current = self.selection.path
+        if current is not None and str(current) == path:
+            self._hash_value = digest
+            self._hash_error = error
+        self._update_hash_view()
+
+    def _on_hash_failed(self, message: str) -> None:
+        self._hash_busy = False
+        self._hash_error = f"Unexpected error: {message}"
+        self._update_hash_view()
+
+    def _prune_workers(self) -> None:
+        self._hash_workers = [w for w in self._hash_workers if w.isRunning()]
+
+    def _copy_hash(self) -> None:
+        if self._hash_value:
+            QApplication.clipboard().setText(self._hash_value)
+
+    def shutdown(self) -> None:
+        """Stop any running hash and wait for its thread (called when the app closes)."""
+        self._hash_cancel.set()
+        for worker in list(self._hash_workers):
+            worker.wait(5000)
+
+    def _update_hash_view(self) -> None:
+        has_file = self.selection.path is not None
+        self._hash_button.setEnabled(has_file and not self._hash_busy)
+        self._hash_button.setText("Calculating..." if self._hash_busy else "SHA-256")
+        mono = "font-family: Consolas, 'Cascadia Mono', monospace; font-size: 12px;"
+        self._hash_copy.setVisible(False)
+        if self._hash_busy:
+            self._hash_label.setText("Calculating SHA-256...")
+            self._hash_label.setStyleSheet(f"color: {Colors.MUTED};")
+            self._hash_label.setVisible(True)
+        elif self._hash_value:
+            self._hash_label.setText(f"<b>SHA-256</b><br>{html.escape(self._hash_value)}")
+            self._hash_label.setStyleSheet(f"color: {Colors.TEXT}; {mono}")
+            self._hash_label.setVisible(True)
+            self._hash_copy.setVisible(True)
+        elif self._hash_error:
+            self._hash_label.setText(f"✖ {html.escape(self._hash_error)}")
+            self._hash_label.setStyleSheet(f"color: {Colors.ERROR};")
+            self._hash_label.setVisible(True)
+        else:
+            self._hash_label.setText("")
+            self._hash_label.setVisible(False)
 
     # -- configuration from the selected device ---------------------------------------
     def configure_slot(self, device: DeviceInfo | None) -> None:
@@ -143,6 +259,7 @@ class _PartitionRow(QFrame):
             self._validation.setText("Choose an image file, or untick this partition if you do not need it.")
             self._validation.setStyleSheet(f"color: {Colors.MUTED};")
             self._clear.setEnabled(False)
+            self._update_hash_view()
             return
         result = validate_image(path, self.selection.partition)
         size = format_size(result.info.size) if result.info.size is not None else "size unknown"
@@ -157,6 +274,7 @@ class _PartitionRow(QFrame):
             glyph, color = "⚠", Colors.WARNING
         self._validation.setText(f"{glyph} {result.message}")
         self._validation.setStyleSheet(f"color: {color};")
+        self._update_hash_view()
 
 
 class ImagesPage(QWidget):
@@ -170,10 +288,7 @@ class ImagesPage(QWidget):
         super().__init__(parent)
         self._last_dir = str(Path.home())
         self._device_signature: tuple | None = None
-<<<<<<< HEAD
         self._last_plan: FlashPlan | None = None
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         self._rows: list[_PartitionRow] = []
 
         root = QVBoxLayout(self)
@@ -247,24 +362,23 @@ class ImagesPage(QWidget):
         self._write.setEnabled(not busy)
         self._stop.setVisible(busy and can_stop)
 
-<<<<<<< HEAD
+    def shutdown(self) -> None:
+        """Stop background hashing before the app closes."""
+        for row in self._rows:
+            row.shutdown()
+
     def apply_theme(self) -> None:
         """Re-render colours that were baked into labels after a theme change."""
         for row in self._rows:
             row.refresh()
         self.set_plan_status(self._last_plan)
 
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
     def publish(self) -> None:
         """Send the current selections to listeners (used once after the window is wired up)."""
         self._emit()
 
     def set_plan_status(self, plan: FlashPlan | None) -> None:
-<<<<<<< HEAD
         self._last_plan = plan
-=======
->>>>>>> e279f909c2b000f4fe73d0efad7a15caaf8d285b
         if plan is None:
             self._status.setText("")
             return
