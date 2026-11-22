@@ -18,8 +18,16 @@ class FastbootWorker(QThread):
     log_message = Signal(str, str)  # level, message
     run_finished = Signal(object)  # FlashRunResult
 
-    def __init__(self, tools: PlatformTools, serial: str, steps: Sequence[PlannedStep], parent=None) -> None:
+    def __init__(
+        self,
+        tools: PlatformTools,
+        serial: str,
+        steps: Sequence[PlannedStep],
+        require_unlocked: bool = False,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
+        self._require_unlocked = require_unlocked
         self._tools = tools
         self._serial = serial
         self._steps = tuple(steps)
@@ -33,7 +41,7 @@ class FastbootWorker(QThread):
         total = len(self._steps)
         try:
             self.log_message.emit("INFO", f"Checking device {self._serial} before starting...")
-            checks = preflight(self._tools, self._serial, self._steps)
+            checks = preflight(self._tools, self._serial, self._steps, require_unlocked=self._require_unlocked)
             for warning in checks.warnings:
                 self.log_message.emit("WARNING", warning)
             if not checks.ok:

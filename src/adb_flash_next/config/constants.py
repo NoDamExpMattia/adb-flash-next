@@ -1,22 +1,39 @@
 """Application-wide constants. No logic lives here."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 APP_NAME = "ADB Flash Next"
 AUTHOR_HANDLE = "NoDamExpMattia"  # shown in Settings > About
 AUTHOR_URL = f"https://github.com/{AUTHOR_HANDLE}"
-APP_VERSION = "0.9.0"
+APP_VERSION = "1.1.0"
 
 DEFAULT_WINDOW_SIZE = (900, 650)
 MIN_WINDOW_SIZE = (760, 560)
 
-# Project root: .../adb_flash_next/  (this file is src/adb_flash_next/config/constants.py)
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _resolve_roots(frozen: bool, meipass: str | None, executable: str, module_file: str) -> tuple[Path, Path]:
+    """Return (folder that holds the bundled assets, folder next to the program).
+
+    From source both are the project folder. Inside a PyInstaller build the assets live in
+    the bundle folder and "next to the program" is the folder containing the .exe.
+    """
+    if frozen:
+        exe_dir = Path(executable).resolve().parent
+        return (Path(meipass) if meipass else exe_dir), exe_dir
+    root = Path(module_file).resolve().parents[3]  # .../adb_flash_next/src/adb_flash_next/config/constants.py
+    return root, root
+
+
+PROJECT_ROOT, APP_DIR = _resolve_roots(
+    bool(getattr(sys, "frozen", False)), getattr(sys, "_MEIPASS", None), sys.executable, __file__
+)
 ASSETS_DIR = PROJECT_ROOT / "assets"
 
 # Place your own logo here (first file found is used).
-LOGO_CANDIDATES = ("logo.png", "logo.svg")
+LOGO_CANDIDATES = ("logo.png", "logo.svg", "app.ico")
 
 # Folder name used for settings/logs under %LOCALAPPDATA% (Windows) or ~/.config.
 APP_DATA_DIRNAME = "ADBFlashNext"

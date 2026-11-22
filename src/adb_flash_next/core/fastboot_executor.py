@@ -59,8 +59,13 @@ def preflight(
     steps: Sequence[PlannedStep],
     cancel_event: threading.Event | None = None,
     runner: Callable[..., CommandResult] = run_command,
+    require_unlocked: bool = False,
 ) -> Preflight:
-    """Checks made right before running: device present, bootloader state, image fits partition."""
+    """Checks made right before running: device present, bootloader state, image fits partition.
+
+    With require_unlocked=True (Auto Flash) the bootloader must ANSWER 'unlocked: yes'; a locked
+    bootloader or an answer that cannot be verified both stop everything.
+    """
     errors: list[str] = []
     warnings: list[str] = []
     client = FastbootClient(tools.fastboot, runner)
@@ -74,10 +79,19 @@ def preflight(
         ), ())
 
     unlocked, _ = client.getvar(serial, "unlocked", cancel_event)
-    if unlocked is not None and unlocked.strip().lower() == "no":
-        errors.append("The bootloader reports that it is LOCKED, so flashing and erasing would be refused.")
-    elif unlocked is None:
-        warnings.append("The bootloader did not report whether it is unlocked.")
+    answer = unlocked.strip().lower() if unlocked else None
+    if answer == "no":
+        errors.append(
+            "The bootloader is LOCKED: an unlocked bootloader is required. Nothing was run."
+        )
+    elif answer != "yes":
+        if require_unlocked:
+            errors.append(
+                "Could not verify that the bootloader is unlocked ('fastboot getvar unlocked' did not "
+                "answer 'yes'), so nothing was started."
+            )
+        elif answer is None:
+            warnings.append("The bootloader did not report whether it is unlocked.")
 
     for step in steps:
         if step.kind != "flash" or step.image is None:

@@ -97,7 +97,7 @@ def main() -> int:
         boot = tmp / "boot.img"
         boot.write_bytes(b"ANDROID!" + bytes(4088))
         window.images_page._rows[0].set_path(boot)
-        window.show_page(1)
+        window.show_page_named("Images")
         shot("3_images")
 
     step("images", images)
@@ -108,19 +108,19 @@ def main() -> int:
         vbmeta.write_bytes(b"AVB0" + bytes(500))
         window.utilities_page._vbmeta = validate_image(vbmeta, "vbmeta")
         window.utilities_page._refresh()
-        window.show_page(2)
+        window.show_page_named("Utilities")
         shot("4_utilities")
 
     step("utilities", utilities)
 
     def reboot() -> None:
-        window.show_page(3)
+        window.show_page_named("Reboot")
         shot("5_reboot_fastboot")
 
     step("reboot", reboot)
 
     def settings() -> None:
-        window.show_page(5)
+        window.show_page_named("Settings")
         shot("6_settings")
 
     step("settings", settings)
@@ -146,7 +146,7 @@ def main() -> int:
     def install() -> None:
         window.install_page._check = zip_check
         window.install_page.set_device(recovery_device)
-        window.show_page(4)
+        window.show_page_named("Install")
         shot("9_install")
 
     step("install page", install)
@@ -156,7 +156,7 @@ def main() -> int:
         window.install_page.set_busy(True)
         window._on_sideload_progress(47)
         shot("10_install_progress_47")
-        window.show_page(0)
+        window.show_page_named("Dashboard")
         shot("11_dashboard_progress_47")
 
     step("sideload progress", install_running)
@@ -165,7 +165,7 @@ def main() -> int:
         for outcome in SideloadOutcome:
             window._on_sideload_finished(SideloadResult(outcome, f"Sample message for {outcome.value}.", last_percent=47))
         window._on_sideload_finished(SideloadResult(SideloadOutcome.COMPLETED, "Sample finished message."))
-        window.show_page(0)
+        window.show_page_named("Dashboard")
         shot("12_dashboard_after_sideload_99")
 
     step("sideload outcomes", outcomes)
@@ -194,16 +194,48 @@ def main() -> int:
         ):
             apply_theme(app, seed, dark)
             window._on_theme_changed()  # same as the signal; keeps the check independent of signals
-            for index, page_name in ((0, "dashboard"), (1, "images"), (2, "utilities"), (3, "reboot"), (4, "install"), (5, "settings")):
-                window.show_page(index)
+            for label, page_name in (("Dashboard", "dashboard"), ("Auto Flash", "auto_flash"), ("Images", "images"), ("Utilities", "utilities"), ("Reboot", "reboot"), ("Install", "install"), ("Settings", "settings")):
+                window.show_page_named(label)
                 shot(f"20_{name}_{page_name}")
         apply_theme(app, "#E5141E", True)
         window._on_theme_changed()
 
     step("themes", themes)
 
+    def auto_flash() -> None:
+        from adb_flash_next.core.auto_flash import AutoStage
+
+        page = window.auto_flash_page
+        window.show_page_named("Auto Flash")
+        shot("30_auto_flash_idle")
+        page.set_stage(AutoStage.RECOVERY)
+        page.set_progress(35)
+        page.set_message("Flashing finished. The procedure is paused. Enter recovery, then press Sideload.", "success")
+        shot("31_auto_flash_recovery")
+        page.set_stage(AutoStage.BOOT, waiting=True)
+        page.set_progress(99)
+        page.set_wavy(True)
+        page.set_message("", "info")
+        shot("32_auto_flash_waiting_for_android_99")
+        page.set_stage(AutoStage.FLASHING, failed=True)
+        page.set_wavy(False)
+        page.set_message("The bootloader is LOCKED: an unlocked bootloader is required. Nothing was run.", "error")
+        shot("33_auto_flash_error")
+        page.set_stage(AutoStage.DONE)
+        page.set_progress(100)
+        page.set_message("Done. Android has started and the installation is complete.", "success")
+        page.celebrate()
+        QTest.qWait(900)
+        window.grab().save(str(OUT / "34_auto_flash_done_confetti.png"))
+        QTest.qWait(2600)
+        page.set_stage(AutoStage.IDLE)
+        page.set_progress(0)
+        page.set_message("", "info")
+
+    step("auto flash", auto_flash)
+
     def collapsed() -> None:
-        window.show_page(0)
+        window.show_page_named("Dashboard")
         window._rail.set_expanded(False, animate=False)
         shot("7_rail_collapsed")
         window._rail.set_expanded(True, animate=False)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+from typing import Sequence
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -52,6 +53,7 @@ class PlanDialog(QDialog):
         *,
         title: str = "Review before flashing",
         start_text: str = "Start flashing",
+        extra_summary: Sequence[str] = (),
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -80,6 +82,13 @@ class PlanDialog(QDialog):
         summary.setWordWrap(True)
         summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(summary)
+
+        if extra_summary:
+            extra = QLabel("<br>".join(html.escape(line) for line in extra_summary))
+            extra.setTextFormat(Qt.TextFormat.RichText)
+            extra.setWordWrap(True)
+            extra.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            layout.addWidget(extra)
 
         issues = QLabel(issues_html(plan))
         issues.setTextFormat(Qt.TextFormat.RichText)

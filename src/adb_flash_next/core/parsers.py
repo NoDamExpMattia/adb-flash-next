@@ -31,6 +31,13 @@ def validate_fastboot_var(name: str) -> str:
     return name
 
 
+def validate_property_name(name: str) -> str:
+    """Android property names (e.g. sys.boot_completed) use the same safe character set."""
+    if not isinstance(name, str) or not _VAR_RE.match(name):
+        raise ValueError(f"Refusing to use an invalid property name: {name!r}")
+    return name
+
+
 @dataclass(frozen=True)
 class AdbListEntry:
     serial: str

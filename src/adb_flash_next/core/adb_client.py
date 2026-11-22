@@ -6,7 +6,13 @@ from pathlib import Path
 from typing import Callable
 
 from adb_flash_next.config.constants import TIMEOUT_ADB_PROPS, TIMEOUT_DEVICE_LIST
-from adb_flash_next.core.parsers import AdbListEntry, parse_adb_devices, parse_getprop, validate_serial
+from adb_flash_next.core.parsers import (
+    AdbListEntry,
+    parse_adb_devices,
+    parse_getprop,
+    validate_property_name,
+    validate_serial,
+)
 from adb_flash_next.core.process_runner import CommandResult, run_command
 
 Runner = Callable[..., CommandResult]
@@ -28,6 +34,18 @@ class AdbClient:
         result = self._run([self._adb, "devices", "-l"], timeout=TIMEOUT_DEVICE_LIST, cancel_event=cancel_event)
         entries = parse_adb_devices(result.stdout) if result.ok else []
         return entries, result
+
+    def get_property(
+        self, serial: str, name: str, cancel_event: threading.Event | None = None
+    ) -> tuple[str | None, CommandResult]:
+        """`adb -s <serial> shell getprop <name>` -> (value or None when empty/failed, raw result)."""
+        result = self._run(
+            self._device_args(serial, "shell", "getprop", validate_property_name(name)),
+            timeout=TIMEOUT_ADB_PROPS,
+            cancel_event=cancel_event,
+        )
+        value = result.stdout.strip() if result.ok else ""
+        return (value or None), result
 
     def get_properties(
         self, serial: str, cancel_event: threading.Event | None = None

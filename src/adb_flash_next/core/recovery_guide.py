@@ -62,3 +62,33 @@ RECOVERY_STEPS: tuple[GuideStep, ...] = (
         ),
     ),
 )
+
+
+# Same steps for the Auto Flash page (wording adapted to its own buttons).
+AUTO_FLASH_STEPS: tuple[GuideStep, ...] = (
+    GuideStep(
+        "1. Boot into recovery",
+        (
+            "Easiest: press 'Reboot to recovery' (not every device supports it).",
+            "Or switch the device off and hold the recovery key combination for your model until the "
+            "recovery appears. Many devices use Power + Volume Up; some use Volume Down.",
+            "From the bootloader (Fastboot) screen you can usually pick 'Recovery mode' with the volume "
+            "keys and confirm with Power.",
+            "Menus differ between recoveries. Follow your ROM's official installation guide.",
+        ),
+    ),
+    RECOVERY_STEPS[1],  # format data: manual only, the app never does it
+    RECOVERY_STEPS[2],  # start ADB sideload on the device
+    GuideStep(
+        "4. Come back here",
+        (
+            "Press 'Sideload'. The app checks that the device is in ADB sideload mode and only then "
+            "sends the ZIP.",
+            "Keep the cable connected and do not lock or unplug the phone while it transfers.",
+            "Some recoveries seem to stall around 47% or end the transfer early; this can be normal. "
+            "Check the phone's screen for the real install result.",
+            "When the install finishes, choose 'Reboot system now' on the phone. The first start can "
+            "take several minutes: the app stays at 99% until Android has fully started.",
+        ),
+    ),
+)

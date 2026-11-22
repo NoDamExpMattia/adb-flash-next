@@ -31,7 +31,7 @@ from adb_flash_next.ui.widgets.toggle_button import ToggleButton
 from adb_flash_next.workers.base_worker import FunctionWorker
 
 
-class _PartitionRow(QFrame):
+class PartitionRow(QFrame):
     """One partition: include checkbox, slot selector, file chooser and validation line."""
 
     changed = Signal()
@@ -289,7 +289,7 @@ class ImagesPage(QWidget):
         self._last_dir = str(Path.home())
         self._device_signature: tuple | None = None
         self._last_plan: FlashPlan | None = None
-        self._rows: list[_PartitionRow] = []
+        self._rows: list[PartitionRow] = []
 
         root = QVBoxLayout(self)
         root.setContentsMargins(28, 24, 28, 24)
@@ -318,7 +318,7 @@ class ImagesPage(QWidget):
         rows_layout.setContentsMargins(0, 0, 8, 0)
         rows_layout.setSpacing(10)
         for partition in SUPPORTED_PARTITIONS:
-            row = _PartitionRow(partition)
+            row = PartitionRow(partition)
             row.connect_buttons(self._on_choose, self._on_clear)
             row.changed.connect(self._emit)
             self._rows.append(row)
@@ -392,7 +392,7 @@ class ImagesPage(QWidget):
             self._status.setStyleSheet(f"color: {Colors.SUCCESS};")
 
     # ---------------------------------------------------------------------- actions
-    def _on_choose(self, row: _PartitionRow) -> None:
+    def _on_choose(self, row: PartitionRow) -> None:
         path, _filter = QFileDialog.getOpenFileName(
             self,
             f"Select the image for {row.selection.partition}",
@@ -403,7 +403,7 @@ class ImagesPage(QWidget):
             self._last_dir = str(Path(path).parent)
             row.set_path(Path(path))
 
-    def _on_clear(self, row: _PartitionRow) -> None:
+    def _on_clear(self, row: PartitionRow) -> None:
         row.set_path(None)
 
     def _emit(self) -> None:

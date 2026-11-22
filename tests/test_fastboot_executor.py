@@ -106,6 +106,47 @@ class PreflightTests(unittest.TestCase):
                 self.assertEqual(call[1:3], ("-s", "ABC123"))
 
 
+class StrictUnlockTests(unittest.TestCase):
+    """Auto Flash: the bootloader must answer 'unlocked: yes', otherwise nothing starts."""
+
+    def setUp(self):
+        self.erase = PlannedStep("erase", "Erase", ("erase", "userdata"), "userdata", destructive=True)
+        self.r = FakeRunner()
+        self.r.set(("devices",), stdout="ABC123\tfastboot\n")
+
+    def run_pre(self, strict=True):
+        return preflight(TOOLS, "ABC123", [self.erase], runner=self.r, require_unlocked=strict)
+
+    def test_yes_continues(self):
+        var(self.r, "unlocked", "yes")
+        self.assertTrue(self.run_pre().ok)
+
+    def test_no_stops_with_a_clear_message(self):
+        var(self.r, "unlocked", "no")
+        result = self.run_pre()
+        self.assertFalse(result.ok)
+        self.assertIn("unlocked bootloader is required", result.errors[0])
+
+    def test_unable_to_verify_does_not_start(self):
+        result = self.run_pre()  # the fake answers 'FAILED (not found)'
+        self.assertFalse(result.ok)
+        self.assertIn("Could not verify", result.errors[0])
+
+    def test_unexpected_answer_does_not_start(self):
+        var(self.r, "unlocked", "maybe")
+        self.assertFalse(self.run_pre().ok)
+
+    def test_the_exact_command_is_used(self):
+        var(self.r, "unlocked", "yes")
+        self.run_pre()
+        self.assertIn(("/t/fastboot", "-s", "ABC123", "getvar", "unlocked"), self.r.calls)
+
+    def test_not_strict_keeps_the_old_behaviour(self):
+        self.assertTrue(self.run_pre(strict=False).ok)  # unknown state is only a warning there
+        var(self.r, "unlocked", "no")
+        self.assertFalse(self.run_pre(strict=False).ok)
+
+
 class RunStepsTests(unittest.TestCase):
     def steps(self, n=3):
         return [PlannedStep("flash", f"Step {i}", ("flash", f"p{i}", f"/img{i}"), f"p{i}") for i in range(n)]

@@ -143,6 +143,14 @@ def _open(p: QPainter) -> None:
     p.drawPolyline(QPolygonF([QPointF(14, 4.5), QPointF(19.5, 4.5), QPointF(19.5, 10)]))
 
 
+
+def _auto(p: QPainter) -> None:
+    p.drawPolygon(QPolygonF([
+        QPointF(12, 3), QPointF(14.2, 9.8), QPointF(21, 12), QPointF(14.2, 14.2),
+        QPointF(12, 21), QPointF(9.8, 14.2), QPointF(3, 12), QPointF(9.8, 9.8),
+    ]))
+
+
 _ICONS = {
     "dashboard": _dashboard,
     "images": _images,
@@ -161,6 +169,7 @@ _ICONS = {
     "lock": _lock,
     "shield": _shield,
     "open": _open,
+    "auto": _auto,
 }
 
 

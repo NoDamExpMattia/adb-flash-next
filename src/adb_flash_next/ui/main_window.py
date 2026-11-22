@@ -29,9 +29,11 @@ from adb_flash_next.core.sideload import (
     validate_rom_zip,
 )
 from adb_flash_next.core.utilities import ACTIONS, build_utility_plan
+from adb_flash_next.ui.auto_flash_controller import AutoFlashController, AutoFlashServices
 from adb_flash_next.ui.dialogs.plan_dialog import PlanDialog
 from adb_flash_next.ui.dialogs.sideload_dialog import SideloadDialog
 from adb_flash_next.ui.m3.nav_rail import NavigationRail
+from adb_flash_next.ui.pages.auto_flash_page import AutoFlashPage
 from adb_flash_next.ui.pages.dashboard_page import DashboardPage
 from adb_flash_next.ui.pages.images_page import ImagesPage
 from adb_flash_next.ui.pages.install_page import InstallPage
@@ -75,10 +77,12 @@ class MainWindow(QMainWindow):
         self.utilities_page = UtilitiesPage()
         self.reboot_page = RebootPage()
         self.install_page = InstallPage()
+        self.auto_flash_page = AutoFlashPage()
 
         # (label, rail icon, page)
         self._pages: list[tuple[str, str, QWidget]] = [
             ("Dashboard", "dashboard", self.dashboard),
+            ("Auto Flash", "auto", self.auto_flash_page),
             ("Images", "images", self.images_page),
             ("Utilities", "utilities", self.utilities_page),
             ("Reboot", "reboot", self.reboot_page),
@@ -108,6 +112,7 @@ class MainWindow(QMainWindow):
         theme_manager().changed.connect(self._on_theme_changed)
         self.dashboard.refresh_requested.connect(self._on_refresh)
         self.dashboard.device_selected.connect(self._on_device_selected)
+        self.dashboard.device_selected.connect(self.auto_flash_page.set_device)
         self.images_page.selections_changed.connect(self._on_selections_changed)
         self.images_page.flash_requested.connect(self._on_flash_requested)
         self.images_page.stop_requested.connect(self._on_stop_requested)
@@ -115,6 +120,22 @@ class MainWindow(QMainWindow):
         self.reboot_page.reboot_requested.connect(self._on_reboot_requested)
         self.install_page.sideload_requested.connect(self._on_sideload_requested)
         self.install_page.cancel_requested.connect(self._on_sideload_cancel)
+
+        self.auto_flash = AutoFlashController(
+            self.auto_flash_page,
+            AutoFlashServices(
+                parent=self,
+                tools=lambda: self._tools,
+                selected_device=self.dashboard.selected_device,
+                begin=self._begin,
+                end=self._end,
+                pause_detection=lambda: self._detector.pause() if self._detector else None,
+                resume_detection=lambda: self._detector.resume() if self._detector else None,
+                log=self.dashboard.log,
+                show_progress=self._show_progress,
+            ),
+            parent=self,
+        )
 
         self.settings_page.set_appearance(self._settings.theme_seed, self._settings.theme_mode)
         self.show_page(0)
@@ -127,6 +148,14 @@ class MainWindow(QMainWindow):
     def show_page(self, index: int) -> None:
         """Select a page in both the rail and the stack."""
         self._rail.set_current(index)
+
+    def show_page_named(self, label: str) -> None:
+        """Select a page by its label, e.g. 'Images'."""
+        for index, (name, _icon, _page) in enumerate(self._pages):
+            if name == label:
+                self.show_page(index)
+                return
+        raise ValueError(f"No page named {label!r}")
 
     # ---------------------------------------------------------- device and plan state
     def _on_device_selected(self, device: DeviceInfo | None) -> None:
@@ -179,7 +208,8 @@ class MainWindow(QMainWindow):
 
     def _on_theme_changed(self) -> None:
         """Re-render every page that baked colours into its labels."""
-        for page in (self.dashboard, self.images_page, self.utilities_page, self.install_page, self.settings_page):
+        for page in (self.dashboard, self.auto_flash_page, self.images_page, self.utilities_page,
+                     self.install_page, self.settings_page):
             page.apply_theme()
         self.update()
 
@@ -566,6 +596,26 @@ class MainWindow(QMainWindow):
 
     # ---------------------------------------------------------------------- close
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 (Qt naming)
+        if self.auto_flash.is_flashing():
+            QMessageBox.warning(
+                self,
+                "Auto Flash in progress",
+                "A flash command is running. Closing now could leave a partition half-written.\n\n"
+                "Wait until it finishes (or use 'Stop after current step' and wait).",
+            )
+            event.ignore()
+            return
+        if self.auto_flash.is_sideloading():
+            answer = QMessageBox.question(
+                self,
+                "Sideload in progress",
+                "Auto Flash is sending the ROM. Cancel it and quit?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
         fastboot_worker = self._fastboot_worker
         if fastboot_worker is not None and fastboot_worker.isRunning():
             QMessageBox.warning(
@@ -590,6 +640,7 @@ class MainWindow(QMainWindow):
                 return
             worker.cancel()
             worker.wait(10000)
+        self.auto_flash.shutdown()
         self.images_page.shutdown()
         self._stop_detector()
         for task in list(self._tasks):

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from adb_flash_next.config.constants import PROJECT_ROOT, TIMEOUT_TOOL_VERSION
+from adb_flash_next.config.constants import APP_DIR, TIMEOUT_TOOL_VERSION
 from adb_flash_next.core.process_runner import CommandResult, run_command
 
 Runner = Callable[..., CommandResult]
@@ -94,8 +94,8 @@ def candidate_directories(configured: str | None) -> list[tuple[str, Path]]:
     candidates: list[tuple[str, Path]] = []
     if configured:
         candidates.append(("the folder saved in Settings", Path(configured)))
-    candidates.append(("the 'platform-tools' folder inside the project", PROJECT_ROOT / "platform-tools"))
-    candidates.append(("the 'platform-tools' folder next to the project folder", PROJECT_ROOT.parent / "platform-tools"))
+    candidates.append(("the 'platform-tools' folder inside the program folder", APP_DIR / "platform-tools"))
+    candidates.append(("the 'platform-tools' folder next to the program folder", APP_DIR.parent / "platform-tools"))
     on_path = shutil.which("adb")
     if on_path:
         candidates.append(("the system PATH", Path(on_path).parent))
