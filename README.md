@@ -1,4 +1,4 @@
-# ADB Flash Next
+# ADB Flash Next (Soon getting a new name...)
 
 ADB Flash Next is an experimental Windows desktop app built with Python and PySide6. It provides a graphical workflow for Android device detection, manually mapped Fastboot image flashing, reboot commands, Fastboot utilities, and recovery ADB sideload.
 
