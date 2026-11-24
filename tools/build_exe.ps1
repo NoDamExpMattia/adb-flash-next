@@ -19,10 +19,12 @@ if (-not (Test-Path "assets\app.ico")) {
         Write-Warning "No assets\app.ico and no assets\logo.png: the exe will get the default icon."
     }
 }
+$binArgs = @()
+if (Test-Path "bin") { $binArgs = @("--add-data", "bin;bin") }  # payload-dumper-go.exe, if you put it there
 $iconArgs = @()
 if (Test-Path "assets\app.ico") { $iconArgs = @("--icon", "assets\app.ico") }
 
-& $py -m PyInstaller --noconfirm --clean --windowed --name "ADB Flash Next" @iconArgs `
+& $py -m PyInstaller --noconfirm --clean --windowed --name "ADB Flash Next" @iconArgs @binArgs `
     --add-data "assets;assets" --paths src main.py
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed." }
 

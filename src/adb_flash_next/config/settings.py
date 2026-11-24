@@ -48,6 +48,15 @@ class Settings:
         self._data["platform_tools_dir"] = value
 
     @property
+    def payload_dumper_path(self) -> str | None:
+        value = self._data.get("payload_dumper_path")
+        return value if isinstance(value, str) and value else None
+
+    @payload_dumper_path.setter
+    def payload_dumper_path(self, value: str | None) -> None:
+        self._data["payload_dumper_path"] = value
+
+    @property
     def theme_seed(self) -> str:
         """Accent colour as '#RRGGBB' (invalid or missing values fall back to the default red)."""
         return normalize_hex(self._data.get("theme_seed"))

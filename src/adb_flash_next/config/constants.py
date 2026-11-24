@@ -7,7 +7,7 @@ from pathlib import Path
 APP_NAME = "ADB Flash Next"
 AUTHOR_HANDLE = "NoDamExpMattia"  # shown in Settings > About
 AUTHOR_URL = f"https://github.com/{AUTHOR_HANDLE}"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 DEFAULT_WINDOW_SIZE = (900, 650)
 MIN_WINDOW_SIZE = (760, 560)

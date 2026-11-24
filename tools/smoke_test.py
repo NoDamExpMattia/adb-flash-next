@@ -208,6 +208,9 @@ def main() -> int:
         page = window.auto_flash_page
         window.show_page_named("Auto Flash")
         shot("30_auto_flash_idle")
+        page._extract_toggle.setChecked(True)
+        shot("30b_auto_flash_extract_on")
+        page._extract_toggle.setChecked(False)
         page.set_stage(AutoStage.RECOVERY)
         page.set_progress(35)
         page.set_message("Flashing finished. The procedure is paused. Enter recovery, then press Sideload.", "success")

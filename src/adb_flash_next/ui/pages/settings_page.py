@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+from pathlib import Path
 
 from PySide6.QtCore import QUrl, Qt, Signal
 from PySide6.QtGui import QColor, QDesktopServices
@@ -43,11 +44,13 @@ class SettingsPage(QWidget):
 
     directory_chosen = Signal(str)
     autodetect_requested = Signal()
+    payload_tool_chosen = Signal(str)
     appearance_changed = Signal(str, str)  # accent colour '#RRGGBB', mode 'dark' / 'light'
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._status_state = ("Checking...", "warn")
+        self._payload_tool: Path | None = None
         self._seed = DEFAULT_SEED
         self._mode = "dark"
         self._swatches: list[ColorSwatch] = []
@@ -151,6 +154,27 @@ class SettingsPage(QWidget):
         look.addWidget(hint)
         root.addWidget(look_card)
 
+        # ------------------------------------------------------ payload-dumper-go
+        payload_card, pay = _card("payload-dumper-go (optional)")
+        self._payload_status = QLabel()
+        self._payload_status.setTextFormat(Qt.TextFormat.RichText)
+        self._payload_status.setWordWrap(True)
+        pay.addWidget(self._payload_status)
+        pay_row = QHBoxLayout()
+        self._payload_button = M3Button("Choose payload-dumper-go...", "tonal", height=44)
+        self._payload_button.clicked.connect(self._on_choose_payload)
+        pay_row.addWidget(self._payload_button)
+        pay_row.addStretch()
+        pay.addLayout(pay_row)
+        pay_note = QLabel(
+            "Used by Auto Flash > Extract partitions. Put payload-dumper-go.exe in the 'bin' folder next to "
+            "the app and it is found automatically."
+        )
+        pay_note.setObjectName("Muted")
+        pay_note.setWordWrap(True)
+        pay.addWidget(pay_note)
+        root.addWidget(payload_card)
+
         # ------------------------------------------------------------------- About
         about_card, about = _card("About")
         app_line = QLabel(f"{APP_NAME}  v{APP_VERSION}")
@@ -171,6 +195,7 @@ class SettingsPage(QWidget):
 
         self._sync_appearance()
         self._render_status()
+        self.show_payload_tool(None)
 
     @staticmethod
     def _add_row(grid: QGridLayout, row: int, name: str) -> QLabel:
@@ -251,6 +276,21 @@ class SettingsPage(QWidget):
         self._mode = "dark"
         self._emit_appearance()
 
+    def _on_choose_payload(self) -> None:
+        path, _filter = QFileDialog.getOpenFileName(
+            self, "Select payload-dumper-go", "", "Programs (*.exe);;All files (*)"
+        )
+        if path:
+            self.payload_tool_chosen.emit(path)
+
+    def show_payload_tool(self, tool: Path | None) -> None:
+        self._payload_tool = tool
+        if tool is None:
+            text, color = "Not found. 'Extract partitions' is unavailable until you add it.", Colors.WARNING
+        else:
+            text, color = f"Found: {html.escape(str(tool))}", Colors.SUCCESS
+        self._payload_status.setText(f'<span style="color:{color}">{text}</span>')
+
     def _open_profile(self) -> None:
         """Open the developer's GitHub profile in the default browser (fixed address, no user input)."""
         QDesktopServices.openUrl(QUrl(AUTHOR_URL))
@@ -258,3 +298,4 @@ class SettingsPage(QWidget):
     def apply_theme(self) -> None:
         """Re-render colours that were baked into labels."""
         self._render_status()
+        self.show_payload_tool(self._payload_tool)

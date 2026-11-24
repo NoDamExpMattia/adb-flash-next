@@ -23,6 +23,7 @@ from adb_flash_next.core.process_runner import CommandResult, run_command
 class AutoStage(str, Enum):
     IDLE = "idle"
     CHECKING = "checking"
+    EXTRACTING = "extracting"  # optional: partitions are taken from the ROM with payload-dumper-go
     FLASHING = "flashing"
     RECOVERY = "recovery"  # paused: the user works on the phone
     SIDELOAD = "sideload"
@@ -32,7 +33,7 @@ class AutoStage(str, Enum):
 
 STEP_TITLES = (
     "Check the device and the bootloader",
-    "Flash the partitions",
+    "Extract (if chosen) and flash the partitions",
     "Recovery: format data (if needed) and start ADB sideload",
     "Sideload the ROM ZIP",
     "Wait for Android to start",
@@ -40,6 +41,7 @@ STEP_TITLES = (
 
 _ACTIVE_INDEX = {
     AutoStage.CHECKING: 0,
+    AutoStage.EXTRACTING: 1,
     AutoStage.FLASHING: 1,
     AutoStage.RECOVERY: 2,
     AutoStage.SIDELOAD: 3,

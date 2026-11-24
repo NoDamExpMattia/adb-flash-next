@@ -31,9 +31,9 @@ class LogPanel(QTextEdit):
         self.document().setMaximumBlockCount(self.MAX_LINES)
         self._entries: list[tuple[str, str, str]] = []
 
-    def append_entry(self, level: str, message: str) -> None:
+    def append_entry(self, level: str, message: str, timestamp: str | None = None) -> None:
         """Append one entry. `level` is INFO, SUCCESS, WARNING or ERROR."""
-        entry = (datetime.now().strftime("%H:%M:%S"), level.upper(), message)
+        entry = (timestamp or datetime.now().strftime("%H:%M:%S"), level.upper(), message)
         self._entries.append(entry)
         if len(self._entries) > self.MAX_LINES:
             del self._entries[: len(self._entries) - self.MAX_LINES]

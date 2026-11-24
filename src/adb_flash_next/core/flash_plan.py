@@ -117,8 +117,15 @@ def device_identity(device: DeviceInfo | None) -> dict:
     )
 
 
-def build_plan(device: DeviceInfo | None, selections: list[PartitionSelection]) -> FlashPlan:
-    """Plan for 'Flash partitions': one `fastboot flash <partition> <image>` per ticked row/slot."""
+def build_plan(
+    device: DeviceInfo | None, selections: list[PartitionSelection], defer_images: bool = False
+) -> FlashPlan:
+    """Plan for flashing: one `fastboot flash <partition> <image>` per ticked row/slot.
+
+    With defer_images=True (Auto Flash "Extract partitions") the images do not exist yet: they are
+    shown as <extracted from ROM>\\<partition>.img and are NOT validated. The real plan is built again,
+    with real files, after the extraction.
+    """
     issues: list[PlanIssue] = []
 
     if device is None:
@@ -146,17 +153,20 @@ def build_plan(device: DeviceInfo | None, selections: list[PartitionSelection]) 
         if sel.partition not in SUPPORTED_PARTITIONS:
             issues.append(PlanIssue(ERROR, f"'{name}' is not a supported partition."))
             continue
-        if sel.path is None:
+        if defer_images:
+            image_path = Path("<extracted from ROM>") / f"{sel.partition}.img"
+        elif sel.path is None:
             issues.append(PlanIssue(ERROR, f"{name}: no image selected. Choose a file or untick this partition."))
             continue
-
-        # image checks
-        result = validate_image(sel.path, sel.partition)
-        if result.level == LEVEL_ERROR:
-            issues.append(PlanIssue(ERROR, f"{name} ({sel.path.name}): {result.message}"))
-            continue
-        if result.level == LEVEL_WARNING:
-            issues.append(PlanIssue(WARNING, f"{name} ({sel.path.name}): {result.message}"))
+        else:
+            image_path = sel.path
+            # image checks
+            result = validate_image(image_path, sel.partition)
+            if result.level == LEVEL_ERROR:
+                issues.append(PlanIssue(ERROR, f"{name} ({image_path.name}): {result.message}"))
+                continue
+            if result.level == LEVEL_WARNING:
+                issues.append(PlanIssue(WARNING, f"{name} ({image_path.name}): {result.message}"))
 
         # slot / partition-name resolution
         if device.scheme is PartitionScheme.AB and sel.slot is None:
@@ -188,10 +198,10 @@ def build_plan(device: DeviceInfo | None, selections: list[PartitionSelection]) 
         for target in targets:
             steps.append(PlannedStep(
                 kind="flash",
-                description=f"Flash {sel.path.name} -> {target}",
-                args=("flash", target, str(sel.path)),
+                description=f"Flash {image_path.name} -> {target}",
+                args=("flash", target, str(image_path)),
                 target_partition=target,
-                image=sel.path,
+                image=image_path,
             ))
 
     return FlashPlan(steps=tuple(steps), issues=tuple(issues), **device_identity(device))

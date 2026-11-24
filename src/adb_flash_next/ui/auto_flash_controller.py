@@ -5,7 +5,9 @@ sideload -> wait for Android -> 100%. A running flash command is never interrupt
 """
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import QObject
@@ -13,10 +15,11 @@ from PySide6.QtWidgets import QMessageBox, QWidget
 
 from adb_flash_next.core.adb_client import AdbClient
 from adb_flash_next.core.auto_flash import AutoStage, BootResult, choose_sideload_serial
-from adb_flash_next.core.fastboot_executor import FlashRunResult
+from adb_flash_next.core.fastboot_executor import FlashRunResult, preflight
 from adb_flash_next.core.flash_plan import build_plan
 from adb_flash_next.core.image_validator import format_size
 from adb_flash_next.core.models import ConnectionMode, DeviceInfo, Transport
+from adb_flash_next.core.payload_extractor import ExtractResult, cleanup_dir, new_run_dir, zip_has_payload
 from adb_flash_next.core.platform_tools import PlatformTools
 from adb_flash_next.core.progress import Phase, overall_percent
 from adb_flash_next.core.reboot import FASTBOOT_ACTIONS, run_reboot
@@ -31,6 +34,7 @@ from adb_flash_next.ui.dialogs.plan_dialog import PlanDialog
 from adb_flash_next.ui.pages.auto_flash_page import AutoFlashPage
 from adb_flash_next.workers.base_worker import FunctionWorker
 from adb_flash_next.workers.boot_watch_worker import BootWatchWorker
+from adb_flash_next.workers.extract_worker import ExtractWorker
 from adb_flash_next.workers.fastboot_worker import FastbootWorker
 from adb_flash_next.workers.sideload_worker import SideloadWorker
 
@@ -50,6 +54,7 @@ class AutoFlashServices:
     resume_detection: Callable[[], None]
     log: Callable[[str, str], None]
     show_progress: Callable[[float, bool, str], None]
+    payload_tool: Callable[[], Path | None]  # payload-dumper-go, or None when it was not found
 
 
 class AutoFlashController(QObject):
@@ -67,6 +72,11 @@ class AutoFlashController(QObject):
         self._sideload_worker: SideloadWorker | None = None
         self._boot_worker: BootWatchWorker | None = None
         self._tasks: list[FunctionWorker] = []
+        self._extract_worker: ExtractWorker | None = None
+        self._extract_dir: Path | None = None
+        self._extract = False
+        self._tool: Path | None = None
+        self._selections: list = []
 
         page.start_requested.connect(self.on_start)
         page.stop_requested.connect(self.on_stop)
@@ -92,14 +102,28 @@ class AutoFlashController(QObject):
         if self._boot_worker is not None:
             self._boot_worker.cancel()
             self._boot_worker.wait(5000)
+        if self._extract_worker is not None:
+            self._extract_worker.cancel()
+            self._extract_worker.wait(10000)
+        self._cleanup_extracted()
         for task in list(self._tasks):
             task.wait(5000)
         self._page.shutdown()
 
+    def _log(self, level: str, message: str) -> None:
+        """Log to the Dashboard AND to this page's own log (the 'Logs' button)."""
+        self._s.log(level, message)
+        self._page.append_log(level, message)
+
+    def _cleanup_extracted(self) -> None:
+        """Delete the temporary extracted images (only ever inside the app's own folder)."""
+        cleanup_dir(self._extract_dir)
+        self._extract_dir = None
+
     def _say(self, text: str, level: str) -> None:
         self._page.set_message(text, level)
         if text:
-            self._s.log(_LOG_LEVEL.get(level, "INFO"), text)
+            self._log(_LOG_LEVEL.get(level, "INFO"), text)
 
     def _progress(self, percent: float, running: bool, text: str) -> None:
         self._last_percent = percent
@@ -116,6 +140,8 @@ class AutoFlashController(QObject):
     def _fail(self, message: str, *, warning: bool = False) -> None:
         """Stop the procedure at the current stage and explain why."""
         self._enter(self._stage, failed=True)
+        self._s.resume_detection()
+        self._cleanup_extracted()
         self._progress(self._last_percent, False, "Stopped. See the message below.")
         self._say(message, "warning" if warning else "error")
         self._s.end()
@@ -145,11 +171,34 @@ class AutoFlashController(QObject):
             self._say(f"The ROM file cannot be used: {check.message}", "error")
             return
 
+        extract = self._page.extract_enabled()
+        tool = None
+        if extract:
+            tool = self._s.payload_tool()
+            if tool is None:
+                self._say(
+                    "payload-dumper-go was not found. Put payload-dumper-go.exe in the 'bin' folder next to "
+                    "the app, or choose it in Settings. Or turn 'Extract partitions' off.", "error")
+                return
+            if not zip_has_payload(zip_path):
+                self._say(
+                    "This ROM ZIP has no payload.bin, so partitions cannot be extracted from it. Turn "
+                    "'Extract partitions' off and choose the image files yourself.", "error")
+                return
+
         device = self._s.selected_device()
-        plan = build_plan(device, self._page.selections())
+        selections = self._page.selections()
+        plan = build_plan(device, selections, defer_images=extract)
         size = format_size(check.size) if check.size is not None else "size unknown"
-        extra = [
-            f"ROM ZIP: {check.path.name} ({size})",
+        extra = [f"ROM ZIP: {check.path.name} ({size})"]
+        if extract:
+            names = ", ".join(s.partition for s in selections if s.enabled)
+            extra.append(
+                f"Extract partitions: ON. payload-dumper-go extracts {names} from the ROM's payload.bin into a "
+                "temporary folder; the extracted images are checked and then flashed with fastboot flash. "
+                "The temporary files are deleted afterwards."
+            )
+        extra += [
             "Bootloader: it must answer 'unlocked: yes' to fastboot getvar unlocked, otherwise nothing is flashed.",
             "After flashing, the procedure pauses in recovery. You format data by hand only if your ROM "
             "requires it, then start ADB sideload on the phone. The app never formats data.",
@@ -176,31 +225,92 @@ class AutoFlashController(QObject):
         self._job_serial = plan.device_serial
         self._adb_serial = None
         self._rom_path = check.path
+        self._extract = extract
+        self._tool = tool
+        self._selections = selections
         self._say("", "info")
         self._enter(AutoStage.CHECKING)
         self._progress(overall_percent(Phase.PREPARE, 0.5), True, "Checking the device and the bootloader...")
-        worker = FastbootWorker(tools, plan.device_serial, plan.steps, require_unlocked=True)
+        self._s.pause_detection()  # polling must not interfere with flashing
+        self._log("INFO", f"Auto Flash started for {plan.device_serial}.")
+        if extract:
+            serial = plan.device_serial
+            # Bootloader first: extracting is pointless if flashing would be refused.
+            self._run_task(
+                lambda: preflight(tools, serial, [], require_unlocked=True),
+                self._on_precheck,
+                lambda message: self._fail(f"Could not check the bootloader: {message}"),
+            )
+        else:
+            self._start_flash_worker(tools, plan.steps)
+
+    def _on_precheck(self, pre) -> None:
+        for warning in pre.warnings:
+            self._log("WARNING", warning)
+        if not pre.ok:
+            self._fail("Not started: " + " ".join(pre.errors))
+            return
+        self._start_extraction()
+
+    def _start_extraction(self) -> None:
+        if self._tool is None or self._rom_path is None:
+            return
+        parts = [s.partition for s in self._selections if s.enabled]
+        self._extract_dir = new_run_dir()
+        self._enter(AutoStage.EXTRACTING)
+        self._progress(overall_percent(Phase.PREPARE, 1.0), True, "Extracting partitions from the ROM...")
+        worker = ExtractWorker(self._tool, self._rom_path, parts, self._extract_dir)
+        worker.log_message.connect(self._log)
+        worker.extract_finished.connect(self._on_extract_finished)
+        self._extract_worker = worker
+        worker.start()
+
+    def _on_extract_finished(self, result: ExtractResult) -> None:
+        worker = self._extract_worker
+        self._extract_worker = None
+        if worker is not None:
+            worker.wait(5000)
+        if not result.success:
+            self._fail(result.message, warning=result.cancelled)
+            return
+        tools = self._s.tools()
+        device = self._s.selected_device()
+        if tools is None or device is None or device.serial != self._job_serial or device.transport is not Transport.FASTBOOT:
+            self._fail("The device changed or left Fastboot mode while extracting. Nothing was flashed.")
+            return
+        # Now the images exist: build the REAL plan (headers are checked here, slots resolved again).
+        real = [dataclasses.replace(s, path=result.files.get(s.partition)) for s in self._selections]
+        plan = build_plan(device, real)
+        if plan.blocked:
+            self._fail("The extracted images cannot be flashed: " + " ".join(e.message for e in plan.errors))
+            return
+        self._log("SUCCESS", result.message)
+        self._start_flash_worker(tools, plan.steps)
+
+    def _start_flash_worker(self, tools: PlatformTools, steps) -> None:
+        worker = FastbootWorker(tools, self._job_serial, steps, require_unlocked=True)
         worker.step_started.connect(self._on_step)
-        worker.log_message.connect(self._s.log)
+        worker.log_message.connect(self._log)
         worker.run_finished.connect(self._on_flash_finished)
         self._fastboot_worker = worker
-        self._s.pause_detection()  # polling must not interfere with flashing
-        self._s.log("INFO", f"Auto Flash started for {plan.device_serial}: {len(plan.steps)} flash step(s).")
         worker.start()
 
     # ------------------------------------------------------------------ 2. flashing
     def _on_step(self, index: int, total: int, description: str) -> None:
-        if self._stage is AutoStage.CHECKING:
+        if self._stage in (AutoStage.CHECKING, AutoStage.EXTRACTING):
             self._enter(AutoStage.FLASHING)
         percent = overall_percent(Phase.FLASH, index / max(total, 1), include_flash=True)
         self._progress(percent, True, f"Flashing {index + 1}/{total}: {description}")
 
     def on_stop(self) -> None:
+        if self._extract_worker is not None:  # extraction only writes temporary files: safe to cancel
+            self._extract_worker.cancel()
+            return
         worker = self._fastboot_worker
         if worker is None:
             return
         worker.request_stop()
-        self._s.log("WARNING", "Stop requested: the current step will finish, then nothing further is run.")
+        self._log("WARNING", "Stop requested: the current step will finish, then nothing further is run.")
 
     def _on_flash_finished(self, result: FlashRunResult) -> None:
         worker = self._fastboot_worker
@@ -208,6 +318,7 @@ class AutoFlashController(QObject):
         if worker is not None:
             worker.wait(5000)
         self._s.resume_detection()
+        self._cleanup_extracted()  # the temporary images are no longer needed
         if not result.success:
             self._fail(result.message, warning=result.stopped)
             return
@@ -248,10 +359,10 @@ class AutoFlashController(QObject):
 
     def _on_reboot_result(self, result) -> None:
         if result.args:
-            self._s.log("INFO", f"$ {result.command_line}")
+            self._log("INFO", f"$ {result.command_line}")
         output = result.combined_output.strip()
         if output:
-            self._s.log("INFO", output)
+            self._log("INFO", output)
         if result.ok:
             self._say("The device accepted the command and should restart into recovery.", "info")
         else:
@@ -312,12 +423,12 @@ class AutoFlashController(QObject):
         self._enter(AutoStage.SIDELOAD)
         worker = SideloadWorker(tools, serial, self._rom_path)
         worker.progress.connect(self._on_sideload_progress)
-        worker.log_message.connect(self._s.log)
+        worker.log_message.connect(self._log)
         worker.sideload_finished.connect(self._on_sideload_finished)
         self._sideload_worker = worker
         self._s.pause_detection()
         self._progress(overall_percent(Phase.SIDELOAD, 0.0, include_flash=True), True, "Starting ADB sideload...")
-        self._s.log("INFO", f"Sending {self._rom_path.name} to {serial}.")
+        self._log("INFO", f"Sending {self._rom_path.name} to {serial}.")
         worker.start()
 
     def _on_sideload_progress(self, percent: int) -> None:
@@ -336,7 +447,7 @@ class AutoFlashController(QObject):
             QMessageBox.StandardButton.No,
         )
         if answer == QMessageBox.StandardButton.Yes:
-            self._s.log("WARNING", "Cancelling the sideload...")
+            self._log("WARNING", "Cancelling the sideload...")
             worker.cancel()
 
     def _on_sideload_finished(self, result: SideloadResult) -> None:
@@ -346,7 +457,7 @@ class AutoFlashController(QObject):
             worker.wait(5000)
         self._s.resume_detection()
         if result.output_tail and result.outcome is not SideloadOutcome.COMPLETED:
-            self._s.log("INFO", f"Last adb output:\n{result.output_tail}")
+            self._log("INFO", f"Last adb output:\n{result.output_tail}")
 
         if result.outcome is SideloadOutcome.COMPLETED:
             self._say(result.message, "info")
@@ -418,6 +529,7 @@ class AutoFlashController(QObject):
         if self.is_flashing() or self.is_sideloading() or self._boot_worker is not None:
             return
         self._s.end()
+        self._cleanup_extracted()
         self._job_serial = None
         self._adb_serial = None
         self._rom_path = None

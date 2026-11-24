@@ -18,6 +18,7 @@ from adb_flash_next.config.settings import Settings
 from adb_flash_next.core.fastboot_executor import FlashRunResult
 from adb_flash_next.core.flash_plan import FlashPlan, PartitionSelection, build_plan
 from adb_flash_next.core.models import DeviceInfo, Transport
+from adb_flash_next.core.payload_extractor import locate_tool
 from adb_flash_next.core.platform_tools import PlatformTools, check_directory, locate
 from adb_flash_next.core.progress import Phase, overall_percent
 from adb_flash_next.core.reboot import RebootAction, availability, run_reboot
@@ -57,6 +58,7 @@ class MainWindow(QMainWindow):
 
         self._settings = Settings()
         self._settings.load()
+        self._payload_tool = locate_tool(self._settings.payload_dumper_path)
         self._tools: PlatformTools | None = None
         self._detector: DetectionWorker | None = None
         self._tasks: list[FunctionWorker] = []
@@ -109,6 +111,7 @@ class MainWindow(QMainWindow):
         self.settings_page.directory_chosen.connect(self._on_directory_chosen)
         self.settings_page.autodetect_requested.connect(self._on_autodetect)
         self.settings_page.appearance_changed.connect(self._on_appearance_changed)
+        self.settings_page.payload_tool_chosen.connect(self._on_payload_tool_chosen)
         theme_manager().changed.connect(self._on_theme_changed)
         self.dashboard.refresh_requested.connect(self._on_refresh)
         self.dashboard.device_selected.connect(self._on_device_selected)
@@ -133,11 +136,14 @@ class MainWindow(QMainWindow):
                 resume_detection=lambda: self._detector.resume() if self._detector else None,
                 log=self.dashboard.log,
                 show_progress=self._show_progress,
+                payload_tool=lambda: self._payload_tool,
             ),
             parent=self,
         )
 
         self.settings_page.set_appearance(self._settings.theme_seed, self._settings.theme_mode)
+        self.settings_page.show_payload_tool(self._payload_tool)
+        self.auto_flash_page.set_extract_tool(self._payload_tool)
         self.show_page(0)
         self.dashboard.log("INFO", f"{APP_NAME} {APP_VERSION} started.")
         self.images_page.publish()
@@ -194,6 +200,19 @@ class MainWindow(QMainWindow):
         self.reboot_page.set_busy(False)
 
     # ------------------------------------------------------------------ appearance
+    def _on_payload_tool_chosen(self, path: str) -> None:
+        candidate = Path(path)
+        if not candidate.is_file():
+            self.dashboard.log("ERROR", f"payload-dumper-go was not found at {path}.")
+            return
+        self._settings.payload_dumper_path = str(candidate)
+        if not self._settings.save():
+            self.dashboard.log("WARNING", f"Could not save settings to {self._settings.path}")
+        self._payload_tool = locate_tool(self._settings.payload_dumper_path)
+        self.settings_page.show_payload_tool(self._payload_tool)
+        self.auto_flash_page.set_extract_tool(self._payload_tool)
+        self.dashboard.log("SUCCESS", f"payload-dumper-go set to {candidate}.")
+
     def _on_appearance_changed(self, seed: str, mode: str) -> None:
         """The user picked a colour or a mode in Settings: apply it live and remember it."""
         app = QApplication.instance()

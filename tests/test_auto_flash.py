@@ -208,3 +208,9 @@ class ConfettiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExtractingStageTests(unittest.TestCase):
+    def test_extracting_is_part_of_step_two(self):
+        self.assertEqual(step_states(AutoStage.EXTRACTING), ["done", "active", "pending", "pending", "pending"])
+        self.assertEqual(step_states(AutoStage.EXTRACTING, failed=True)[1], "failed")
