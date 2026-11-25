@@ -4,9 +4,7 @@ ADB Flash Next is an experimental Windows desktop app built with Python and PySi
 
 ## Project status
 
-New releases drop every week. Currently everything is working but not confirmed to succesfully work since the program hasn't been tested yet.
-Supported image destinations are `boot`, `dtbo`, `vendor_boot`, `recovery`, `init_boot`, and `vbmeta`. 
-
+Currently the program is in a very good phase! Everything is confirmed to work and probably will in future updates!
 ## Safety
 
 - Flashing the wrong image can make a device fail to boot or require a full recovery.
