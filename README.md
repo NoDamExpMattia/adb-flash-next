@@ -61,4 +61,4 @@ python tools/smoke_test.py
 
 ## License
 
-No license has been selected yet. Until a license is added, default copyright rules apply; a public GitHub repository is not automatically open-source software. See [GitHub's licensing guide](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository).
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for details.
